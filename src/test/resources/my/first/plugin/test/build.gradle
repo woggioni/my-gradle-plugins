@@ -1,0 +1,8 @@
+plugins {
+    id "net.corda.my-first-plugin"
+}
+
+my_first_plugin {
+    message = 'Hi'
+    greeter = 'Gradle'
+}
