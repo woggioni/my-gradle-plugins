@@ -1,4 +1,4 @@
-package my.first.plugin
+package net.woggioni.plugins
 
 import java.io.FileNotFoundException
 import java.io.IOException

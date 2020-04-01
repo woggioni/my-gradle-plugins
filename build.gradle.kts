@@ -1,14 +1,15 @@
 repositories {
     jcenter()
+    mavenLocal()
 }
 
-group = "net.corda"
+group = "net.woggioni.plugins"
 version = 0.1
 
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    id("org.jetbrains.kotlin.jvm") version("1.3.61")
+    id("org.jetbrains.kotlin.jvm") version("1.3.71")
     id("com.gradle.plugin-publish") version("0.10.1")
 }
 
@@ -26,6 +27,7 @@ dependencies {
 
     // Use the Kotlin JDK 8 standard library.
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("net.woggioni:worth:1.0")
 
     // Use the Kotlin test library.
 //    testImplementation("org.jetbrains.kotlin:kotlin-test")
@@ -41,8 +43,8 @@ dependencies {
 gradlePlugin {
     // Define the plugin
     val my_first_plugin by plugins.creating {
-        id = "net.corda.my-first-plugin"
-        implementationClass = "my.first.plugin.MyFirstPluginPlugin"
+        id = "net.woggioni.plugins.dependency-export"
+        implementationClass = "net.woggioni.plugins.DependencyExportPlugin"
     }
 }
 
@@ -74,4 +76,8 @@ tasks.withType<Test>().configureEach {
 tasks.withType<Wrapper>().configureEach {
     gradleVersion = "6.1.1"
     distributionType = Wrapper.DistributionType.ALL
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions.jvmTarget = "1.8"
 }
