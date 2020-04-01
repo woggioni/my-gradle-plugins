@@ -3,14 +3,6 @@
  */
 package net.woggioni.plugins
 
-import net.woggioni.jwo.JWO
-import net.woggioni.jwo.tree.StackContext
-import net.woggioni.jwo.tree.TreeNode
-import net.woggioni.jwo.tree.TreeNodeVisitor
-import net.woggioni.jwo.tree.TreeWalker
-import net.woggioni.worth.serialization.json.JSONDumper
-import net.woggioni.worth.value.ObjectValue
-import net.woggioni.worth.xface.Value
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
@@ -21,7 +13,6 @@ import org.gradle.api.artifacts.result.UnresolvedDependencyResult
 import java.io.BufferedWriter
 import java.io.OutputStreamWriter
 import java.nio.file.Files
-import java.nio.file.Paths
 
 open class DependencyExportPluginExtension {
     var configurationName: String = "default"
@@ -89,71 +80,6 @@ object DependencyExporter {
             writer.write("}")
             writer.newLine()
         }
-    }
-}
-
-class DependencyTreeNode(val component: ResolvedComponentResult) : TreeNode<DependencyTreeNode> {
-    override fun children(): Iterator<DependencyTreeNode> {
-        return object : Iterator<DependencyTreeNode> {
-            val it = component.dependencies.iterator()
-            override fun hasNext(): Boolean {
-                return it.hasNext()
-            }
-
-            override fun next(): DependencyTreeNode {
-                val dependency = it.next()
-                return when (dependency) {
-                    is ResolvedDependencyResult -> {
-                        DependencyTreeNode(dependency.selected)
-                    }
-                    is UnresolvedDependencyResult -> {
-                        throw dependency.failure
-                    }
-                    else -> {
-                        throw NotImplementedError("${dependency::class}")
-                    }
-                }
-            }
-        }
-    }
-}
-
-fun export(project: Project) {
-    val cfg = Value.Configuration.builder()
-            .serializeReferences(true)
-            .objectValueImplementation(ObjectValue.Implementation.ArrayList)
-            .build()
-    val result = ObjectValue.newInstance(cfg)
-    project.configurations.all { configuration ->
-        if (configuration.isCanBeResolved) {
-            val configDeps = ObjectValue.newInstance(cfg)
-            val visitor = object : TreeNodeVisitor<DependencyTreeNode, ObjectValue> {
-                override fun visitPre(stack: MutableList<StackContext<DependencyTreeNode, ObjectValue>>): TreeNodeVisitor.VisitOutcome {
-                    val stackElement = JWO.tail(stack)
-                    stackElement.context = ObjectValue.newInstance(cfg)
-                    val id = stackElement.node.component.id
-                    if (stack.size == 1) {
-                        configDeps.put(id.displayName, stackElement.context)
-                    } else if (stack.size > 1) {
-                        val parentStackElement = JWO.tail(stack, -2)
-                        parentStackElement.context.put(id.displayName, stackElement.context)
-                    }
-                    return TreeNodeVisitor.VisitOutcome.CONTINUE
-                }
-//                    override fun visitPost(stack: MutableList<StackContext<DependencyTreeNode, ObjectValue>>?) {
-//                        val stackElement = JWO.tail(stack)
-//                        if(stack.size > 1) {
-//                            val parentStackElement = JWO.tail(stack, -2)
-//                            parentStackElement.context.add(StringValue(stackElement.node.component.toString()))
-//                        }
-//                    }
-            }
-            TreeWalker(visitor).walk(DependencyTreeNode(configuration.incoming.resolutionResult.root))
-            result.put(configuration.name, configDeps)
-        }
-    }
-    BufferedWriter(OutputStreamWriter(Files.newOutputStream(Paths.get("/tmp/dependencies.json")))).use {
-        JSONDumper.newInstance(cfg).dump(result, it)
     }
 }
 

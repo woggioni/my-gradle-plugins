@@ -19,21 +19,13 @@ configure<ExtraPropertiesExtension> {
 
 dependencies {
 
-//    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
-
 
     // Align versions of all Kotlin components
     implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
 
     // Use the Kotlin JDK 8 standard library.
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("net.woggioni:worth:1.0")
 
-    // Use the Kotlin test library.
-//    testImplementation("org.jetbrains.kotlin:kotlin-test")
-
-    // Use the Kotlin JUnit integration.
-//    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.5.2")
     testImplementation(gradleTestKit())
 
@@ -41,30 +33,11 @@ dependencies {
 }
 
 gradlePlugin {
-    // Define the plugin
-    val my_first_plugin by plugins.creating {
+    val dependencyExportPlugin by plugins.creating {
         id = "net.woggioni.plugins.dependency-export"
         implementationClass = "net.woggioni.plugins.DependencyExportPlugin"
     }
 }
-
-// Add a source set for the functional test suite
-//val functionalTestSourceSet = sourceSets.create("functionalTest") {
-//}
-//
-//gradlePlugin.testSourceSets(functionalTestSourceSet)
-//configurations.getByName("functionalTestImplementation").extendsFrom(configurations.getByName("testImplementation"))
-
-// Add a task to run the functional tests
-//val functionalTest by tasks.creating(Test::class) {
-//    testClassesDirs = functionalTestSourceSet.output.classesDirs
-//    classpath = functionalTestSourceSet.runtimeClasspath
-//}
-//
-//val check by tasks.getting(Task::class) {
-//    // Run the functional tests as part of `check`
-//    dependsOn(functionalTest)
-//}
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
@@ -74,7 +47,7 @@ tasks.withType<Test>().configureEach {
 }
 
 tasks.withType<Wrapper>().configureEach {
-    gradleVersion = "6.1.1"
+    gradleVersion = "6.3"
     distributionType = Wrapper.DistributionType.ALL
 }
 
