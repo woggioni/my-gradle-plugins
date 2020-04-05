@@ -9,7 +9,8 @@ buildscript {
     }
 }
 
-import net.woggioni.plugins.DependencyExportPluginExtension
+import net.woggioni.plugins.ExportDependenciesPluginExtension
+import net.woggioni.plugins.RenderDependenciesPluginExtension
 
 plugins {
     kotlin("jvm") version "1.3.71"
@@ -25,6 +26,10 @@ dependencies {
     runtime("org.hibernate:hibernate-core:5.4.13.Final")
 }
 
-configure<DependencyExportPluginExtension> {
+configure<ExportDependenciesPluginExtension> {
     configurationName = "runtime"
+}
+
+configure<RenderDependenciesPluginExtension> {
+    format = "svg"
 }

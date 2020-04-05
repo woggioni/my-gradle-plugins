@@ -23,6 +23,10 @@ exportDependencies {
     configurationName = 'runtime'
 }
 
+renderDependencies {
+    format = "svg"
+}
+
 dependencies {
     runtime("org.hibernate:hibernate-core:5.4.13.Final")
 }
