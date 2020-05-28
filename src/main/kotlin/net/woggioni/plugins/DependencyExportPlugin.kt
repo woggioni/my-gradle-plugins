@@ -27,7 +27,7 @@ open class RenderDependenciesPluginExtension(project: Project) {
     var graphvizExecutable: String = "dot"
 }
 
-private class Overrider(private val properties : Map<String, Any?>, private val prefix: String) {
+private class Overrider(private val properties: Map<String, Any?>, private val prefix: String) {
     inline fun <reified T> identity(arg: T): T {
         return arg
     }
@@ -58,10 +58,19 @@ object DependencyExporter {
         var sequence = 0
         val map = HashMap<ResolvedComponentResult, Int>()
 
-        val resolutionResult = project.configurations.single {
+        val requestedConfiguration = project.configurations.singleOrNull {
             it.name == ext.configurationName
-        }.incoming.resolutionResult
-        if(!ext.outputFile.isAbsolute) {
+        }?.takeIf { it.isCanBeResolved } ?: let {
+            val resolvableConfigurations = "[" + project.configurations.asSequence()
+                    .filter { it.isCanBeResolved }
+                    .map { "'${it.name}'" }
+                    .joinToString(",") + "]"
+            throw GradleException("Configuration '${ext.configurationName}' doesn't exist or cannot be resolved, " +
+                "resolvable configurations in this project are " + resolvableConfigurations)
+        }
+
+        val resolutionResult = requestedConfiguration.incoming.resolutionResult
+        if (!ext.outputFile.isAbsolute) {
             ext.outputFile = project.buildDir.toPath().resolve(ext.outputFile)
         }
         Files.createDirectories(ext.outputFile.parent)
@@ -119,13 +128,13 @@ object DependencyExporter {
 }
 
 object DependencyRenderer {
-    fun render(project: Project, ext: RenderDependenciesPluginExtension, sourceFile : Path) {
+    fun render(project: Project, ext: RenderDependenciesPluginExtension, sourceFile: Path) {
         val overrider = Overrider(project.properties, "renderDependencies")
         overrider.overrideProperty(ext::format)
         overrider.overrideProperty(ext::graphvizExecutable)
         overrider.overrideProperty(ext::outputFile) { value -> Paths.get(value) }
 
-        if(!ext.outputFile.isAbsolute) {
+        if (!ext.outputFile.isAbsolute) {
             ext.outputFile = project.buildDir.toPath().resolve(ext.outputFile)
         }
         val cmd: List<String> = listOf(
