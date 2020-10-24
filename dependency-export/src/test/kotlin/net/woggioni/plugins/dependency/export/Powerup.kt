@@ -1,4 +1,4 @@
-package net.woggioni.plugins
+package net.woggioni.plugins.dependency.export
 
 import java.io.FileNotFoundException
 import java.io.IOException

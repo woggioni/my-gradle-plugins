@@ -1,56 +1,31 @@
-repositories {
-    jcenter()
-    mavenLocal()
-}
-
-group = "net.woggioni.plugins"
-version = 0.1
-
 plugins {
-    `java-gradle-plugin`
-    `maven-publish`
-    id("org.jetbrains.kotlin.jvm") version("1.3.71")
-    id("com.gradle.plugin-publish") version("0.10.1")
+    id("org.jetbrains.kotlin.jvm") version "1.3.72" apply false
+    id("com.gradle.plugin-publish") version "0.10.1" apply false
 }
 
-configure<ExtraPropertiesExtension> {
-    set("junit_jupiter_version", "5.5.2")
-}
+allprojects {
+    apply<JavaLibraryPlugin>()
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+    group = "net.woggioni.plugins"
+    version = 0.1
 
-dependencies {
+    dependencies {
+        add("testImplementation", create(group="org.junit.jupiter", name="junit-jupiter-api", version=project["version.junitJupiter"]))
+        add("testRuntimeOnly", create(group="org.junit.jupiter", name="junit-jupiter-engine", version=project["version.junitJupiter"]))
+        add("testImplementation", gradleTestKit())
+    }
 
-
-    // Align versions of all Kotlin components
-    implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-
-    // Use the Kotlin JDK 8 standard library.
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.5.2")
-    testImplementation(gradleTestKit())
-
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.5.2")
-}
-
-gradlePlugin {
-    val dependencyExportPlugin by plugins.creating {
-        id = "net.woggioni.plugins.dependency-export"
-        implementationClass = "net.woggioni.plugins.DependencyExportPlugin"
+    tasks.named<Test>("test") {
+        useJUnitPlatform()
     }
 }
 
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
-    systemProperty("plugin.build.dir", tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().first().destinationDir)
-    systemProperty("java.io.tmpdir", buildDir.absolutePath)
-    systemProperty("test.gradle.user.home", project.gradle.gradleUserHomeDir)
-}
-
 tasks.withType<Wrapper>().configureEach {
-    gradleVersion = "6.3"
+    gradleVersion = "6.6"
     distributionType = Wrapper.DistributionType.ALL
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = "1.8"
-}
