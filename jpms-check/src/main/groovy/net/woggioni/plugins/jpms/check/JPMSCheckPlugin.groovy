@@ -156,16 +156,19 @@ class JPMSCheckPlugin implements Plugin<Project> {
             boolean recursive = project.properties["jpms-check.recursive"]?.with(Boolean.&parseBoolean) ?: false
             String cfgName = project.properties["jpms-check.configurationName"] ?: "default"
             String outputFormat = project.properties["jpms-check.outputFormat"] ?: "html"
-            Path outputFile
-            switch(outputFormat) {
-                case "html":
-                    outputFile = Paths.get(project.properties["jpms-check.outputFile"]) ?: Paths.get(project.buildDir.path, "jpms-report.html")
-                    break
-                case "json":
-                    outputFile = Paths.get(project.properties["jpms-check.outputFile"]) ?: Paths.get(project.buildDir.path, "jpms-report.json")
-                    break
-                default:
-                    throw new IllegalArgumentException("Unsupported output format: $outputFormat")
+            Path outputFile = project.properties["jpms-check.outputFile"]?.with {
+                Paths.get(it as String)
+            } ?: with {
+                switch(outputFormat) {
+                    case "html":
+                        Paths.get(project.buildDir.path, "jpms-report.html")
+                        break
+                    case "json":
+                        Paths.get(project.buildDir.path, "jpms-report.json")
+                        break
+                    default:
+                        throw new IllegalArgumentException("Unsupported output format: $outputFormat")
+                }
             }
             doLast {
                 Set<CheckResult> results = (recursive ? project.subprojects.stream() : Stream.of(project)).flatMap {
