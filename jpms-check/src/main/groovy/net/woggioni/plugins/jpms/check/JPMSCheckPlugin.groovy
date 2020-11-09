@@ -2,6 +2,7 @@ package net.woggioni.plugins.jpms.check
 
 import groovy.json.JsonBuilder
 import groovy.transform.Canonical
+import groovy.transform.CompileStatic
 import groovy.xml.MarkupBuilder
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
@@ -20,6 +21,7 @@ import java.util.stream.Stream
 class JPMSCheckPlugin implements Plugin<Project> {
 
     @Canonical
+    @CompileStatic
     private class CheckResult {
         ResolvedArtifactResult dep
         String automaticModuleName
@@ -34,10 +36,10 @@ class JPMSCheckPlugin implements Plugin<Project> {
         boolean equals(Object other) {
             if(other == null) {
                 return false
-            } else if(other.class != CheckResult.class) {
-                return false
+            } else if(other.class == CheckResult.class) {
+                return dep?.id?.componentIdentifier == ((CheckResult) other).dep?.id?.componentIdentifier
             } else {
-                return dep?.id?.componentIdentifier == other.dep?.id?.componentIdentifier
+                return false
             }
         }
 
@@ -47,10 +49,11 @@ class JPMSCheckPlugin implements Plugin<Project> {
         }
     }
 
+    @CompileStatic
     private Stream<CheckResult> computeResults(Stream<ResolvedArtifactResult> artifacts) {
         return artifacts.filter { ResolvedArtifactResult res ->
             res.file.exists() && res.file.name.endsWith(".jar")
-        }.map { resolvedArtifact ->
+        }.<CheckResult>map { resolvedArtifact ->
             JarFile jarFile = new JarFile(resolvedArtifact.file).with {
                 if (it.isMultiRelease()) {
                     new JarFile(
@@ -85,7 +88,8 @@ class JPMSCheckPlugin implements Plugin<Project> {
         builder.html {
             head {
                 meta name: "viewport", content: "width=device-width, initial-scale=1"
-                getClass().classLoader.getResourceAsStream('net/woggioni/plugins/jpms/check/github-markdown.css').withReader { Reader reader ->
+                InputStream resourceStream = getClass().classLoader.getResourceAsStream('net/woggioni/plugins/jpms/check/github-markdown.css')
+                resourceStream.withReader { Reader reader ->
                     style reader.text
                 }
                 body {
@@ -151,6 +155,7 @@ class JPMSCheckPlugin implements Plugin<Project> {
     }
 
     @Override
+    @CompileStatic
     void apply(Project project) {
         project.tasks.register("jpms-check") {task ->
             boolean recursive = project.properties["jpms-check.recursive"]?.with(Boolean.&parseBoolean) ?: false
@@ -170,23 +175,27 @@ class JPMSCheckPlugin implements Plugin<Project> {
                         throw new IllegalArgumentException("Unsupported output format: $outputFormat")
                 }
             }
-            doLast {
-                Set<CheckResult> results = (recursive ? project.subprojects.stream() : Stream.of(project)).flatMap {
-                    Configuration requestedConfiguration = project.configurations.find { Configuration cfg ->
+            task.doLast {
+                Stream<Project> projects = Stream.of(project)
+                if(recursive) {
+                    projects = Stream.concat(projects, project.subprojects.stream())
+                }
+                Set<CheckResult> results = projects.flatMap {
+                    Configuration requestedConfiguration = (project.configurations.<Configuration>find { Configuration cfg ->
                         cfg.canBeResolved && cfg.name == cfgName
-                    } ?: ({
+                    } ?: {
                         def resolvableConfigurations = "[" + project.configurations
                                 .grep { Configuration cfg -> cfg.canBeResolved }
                                 .collect { "'${it.name}'" }
                                 .join(",") + "]"
                         throw new GradleException("Configuration '$cfgName' doesn't exist or cannot be resolved, " +
                                 "resolvable configurations in this project are " + resolvableConfigurations)
-                    } as Configuration)
+                    }) as Configuration
                     computeResults(requestedConfiguration.incoming.artifacts.artifacts.stream())
                 }.collect(Collectors.toSet())
                 Files.createDirectories(outputFile.parent)
                 Files.newBufferedWriter(outputFile).withWriter {
-                    Stream<CheckResult> resultStream = results.stream().sorted(Comparator.comparing { CheckResult res ->
+                    Stream<CheckResult> resultStream = results.stream().sorted(Comparator.<CheckResult, String>comparing { CheckResult res ->
                         res.dep.id.componentIdentifier.displayName
                     })
                     switch(outputFormat) {

@@ -1,8 +1,3 @@
-plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.3.72" apply false
-    id("com.gradle.plugin-publish") version "0.10.1" apply false
-}
-
 allprojects {
     apply<JavaLibraryPlugin>()
     repositories {
@@ -25,7 +20,7 @@ allprojects {
 }
 
 tasks.withType<Wrapper>().configureEach {
-    gradleVersion = "6.6"
+    gradleVersion = "6.7"
     distributionType = Wrapper.DistributionType.ALL
 }
 
