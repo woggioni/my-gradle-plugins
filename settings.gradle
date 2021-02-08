@@ -1,0 +1,15 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+
+    plugins {
+        id 'org.jetbrains.kotlin.jvm' version this['version.kotlin']
+        id 'com.gradle.plugin-publish' version this['version.gradlePublish']
+    }
+}
+
+rootProject.name = "my-gradle-plugins"
+include("dependency-export")
+include("jpms-check")
+include("multi-release-jar")

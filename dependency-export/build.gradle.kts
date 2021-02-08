@@ -1,16 +1,10 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    id("org.jetbrains.kotlin.jvm")
     id("com.gradle.plugin-publish")
 }
 
 dependencies {
-    // Align versions of all Kotlin components
-    implementation(platform("org.jetbrains.kotlin:kotlin-bom"))
-
-    // Use the Kotlin JDK 8 standard library.
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }
 
 java {
@@ -27,19 +21,8 @@ arrayOf("apiElements", "runtimeElements").forEach { name : String ->
 
 
 gradlePlugin {
-    plugins {
-        create("DependencyExportPlugin") {
-            id = "net.woggioni.plugins.dependency-export"
-            implementationClass = "net.woggioni.plugins.dependency.export.DependencyExportPlugin"
-        }
-    }
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        languageVersion = "1.3"
-        apiVersion = "1.3"
-        jvmTarget = "1.8"
-        javaParameters = true   // Useful for reflection.
+    val dependencyExportPlugin by plugins.creating {
+        id = "net.woggioni.gradle.dependency-export"
+        implementationClass = "net.woggioni.gradle.dependency.export.DependencyExportPlugin"
     }
 }

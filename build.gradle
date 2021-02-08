@@ -1,0 +1,30 @@
+allprojects {
+    apply plugin: 'java-library'
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+    group = "net.woggioni.gradle"
+    version = 0.1
+
+    dependencies {
+        ['compileOnly', 'annotationProcessor', 'testCompileOnly', 'testAnnotationProcessor'].each { conf ->
+            add(conf, [group: "org.projectlombok", name: "lombok", version: project['version.lombok']])
+        }
+        add("testImplementation", create(group: "org.junit.jupiter", name:"junit-jupiter-api", version: project["version.junitJupiter"]))
+        add("testRuntimeOnly", create(group: "org.junit.jupiter", name: "junit-jupiter-engine", version: project["version.junitJupiter"]))
+        add("testImplementation", gradleTestKit())
+    }
+
+    tasks.named("test", Test) {
+        useJUnitPlatform()
+    }
+}
+
+wrapper {
+    gradleVersion = "6.8"
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+
