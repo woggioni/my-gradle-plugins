@@ -19,14 +19,10 @@ public class DependencyExportPlugin implements Plugin<Project> {
         Provider<ExportDependencies> exportDependenciesTask =
                 project.getTasks().register("exportDependencies", ExportDependencies.class);
         Provider<RenderDependencies> renderDependenciesTask =
-            project.getTasks().register("renderDependencies", RenderDependencies.class, new Action<RenderDependencies>() {
-                @Override
-                public void execute(RenderDependencies renderDependencies) {
-                    renderDependencies.setExportTask(exportDependenciesTask);
-                }
-            });
+            project.getTasks().register("renderDependencies", RenderDependencies.class,
+                    renderDependencies -> renderDependencies.setExportTask(exportDependenciesTask));
 
-//        project.getExtensions().getExtraProperties().set(ExportDependencies.class.getSimpleName(), ExportDependencies.class);
+        project.getExtensions().getExtraProperties().set(ExportDependencies.class.getSimpleName(), ExportDependencies.class);
         project.getExtensions().getExtraProperties().set(RenderDependencies.class.getSimpleName(), RenderDependencies.class);
     }
 }
