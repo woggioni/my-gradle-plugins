@@ -10,6 +10,8 @@ pluginManagement {
 }
 
 rootProject.name = "my-gradle-plugins"
+
 include("dependency-export")
 include("jpms-check")
 include("multi-release-jar")
+include("wildfly")

@@ -1,7 +1,10 @@
-allprojects {
+subprojects {
     apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
     repositories {
-        mavenLocal()
+        maven {
+            url = woggioniMavenRepositoryUrl
+        }
         mavenCentral()
         jcenter()
     }
@@ -20,10 +23,23 @@ allprojects {
     tasks.named("test", Test) {
         useJUnitPlatform()
     }
+
+    publishing {
+        repositories {
+            maven {
+                url = woggioniMavenRepositoryUrl
+            }
+        }
+        publications {
+            maven(MavenPublication) {
+                from(components["java"])
+            }
+        }
+    }
 }
 
 wrapper {
-    gradleVersion = "6.8"
+    gradleVersion = "7.0.2"
     distributionType = Wrapper.DistributionType.ALL
 }
 
