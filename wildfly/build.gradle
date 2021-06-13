@@ -1,0 +1,13 @@
+plugins {
+    id 'maven-publish'
+    id 'java-gradle-plugin'
+}
+
+gradlePlugin {
+    plugins {
+        create("WildflyPlugin") {
+            id = "net.woggioni.gradle.wildfly"
+            implementationClass = "net.woggioni.gradle.wildfly.WildflyPlugin"
+        }
+    }
+}
