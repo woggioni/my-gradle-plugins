@@ -9,7 +9,6 @@ subprojects {
         jcenter()
     }
     group = "net.woggioni.gradle"
-    version = 0.1
 
     dependencies {
         ['compileOnly', 'annotationProcessor', 'testCompileOnly', 'testAnnotationProcessor'].each { conf ->

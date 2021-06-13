@@ -3,6 +3,8 @@ plugins {
     id 'java-gradle-plugin'
 }
 
+version = "0.1"
+
 gradlePlugin {
     plugins {
         create("WildflyPlugin") {

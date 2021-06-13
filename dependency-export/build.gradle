@@ -1,0 +1,29 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+dependencies {
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+["apiElements", "runtimeElements"].each { String name ->
+    def conf = project.configurations.getByName(name)
+    conf.attributes {
+        attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
+    }
+}
+
+version = 0.2
+
+gradlePlugin {
+    plugins {
+        create("DependencyExportPlugin") {
+            id = "net.woggioni.gradle.dependency-export"
+            implementationClass = "net.woggioni.gradle.dependency.export.DependencyExportPlugin"
+        }
+    }
+}
