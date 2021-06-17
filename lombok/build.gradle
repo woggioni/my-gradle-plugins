@@ -1,0 +1,15 @@
+plugins {
+    id 'maven-publish'
+    id 'java-gradle-plugin'
+}
+
+version = "0.1"
+
+gradlePlugin {
+    plugins {
+        create("LombokPlugin") {
+            id = "net.woggioni.gradle.lombok"
+            implementationClass = "net.woggioni.gradle.lombok.LombokPlugin"
+        }
+    }
+}
