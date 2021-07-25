@@ -24,7 +24,8 @@ public class LombokPlugin implements Plugin<Project> {
         ObjectFactory objectFactory = project.getObjects();
         LombokExtension ext = project.getExtensions()
                 .create("lombok", LombokExtension.class,
-                        objectFactory.property(String.class).convention("1.18.20")
+                        objectFactory.property(String.class)
+                            .convention((String) project.getExtensions().getExtraProperties().get("version.lombok"))
                 );
         JavaPluginConvention javaPluginConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
         SourceSetContainer sourceSetContainer = javaPluginConvention.getSourceSets();
