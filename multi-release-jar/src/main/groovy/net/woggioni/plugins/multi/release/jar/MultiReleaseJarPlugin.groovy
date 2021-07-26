@@ -7,20 +7,22 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.attributes.java.TargetJvmVersion
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.SourceDirectorySet
-import org.gradle.api.plugins.Convention
-import org.gradle.api.plugins.JavaBasePlugin
-import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
-import org.gradle.internal.impldep.org.apache.commons.compress.compressors.z.ZCompressorInputStream
 import org.gradle.jvm.tasks.Jar
 
 class MultiReleaseJarPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
-        project.pluginManager.apply(JavaBasePlugin)
-        if(JavaVersion.current() > JavaVersion.VERSION_1_8) {
+        project.pluginManager.apply(JavaPlugin)
+        JavaPluginExtension javaPluginExtension = project.extensions.findByType(JavaPluginExtension.class)
+        JavaVersion binaryVersion = javaPluginExtension.targetCompatibility ?: javaPluginExtension.toolchain?.with {
+            it.languageVersion.get()
+        } ?: JavaVersion.current()
+        if(binaryVersion > JavaVersion.VERSION_1_8) {
             SourceSet mainSourceSet = (project.sourceSets.main as SourceSet)
             JavaCompile compileJavaTask = project.tasks.named("compileJava", JavaCompile).get()
             compileJavaTask.configure {
@@ -35,16 +37,16 @@ class MultiReleaseJarPlugin implements Plugin<Project> {
             ArrayList<FileCollection> sourcePaths = new ArrayList<>()
             sourcePaths << mainSourceSet.java.sourceDirectories
             Arrays.stream(JavaVersion.values()).filter {
-                it > JavaVersion.VERSION_1_8 && it <= JavaVersion.current()
+                it > JavaVersion.VERSION_1_8 && it <= binaryVersion
             }.forEach {javaVersion ->
                 SourceDirectorySet sourceDirectorySet =
-                    project.objects.sourceDirectorySet("java${javaVersion.majorVersion}", javaVersion.toString())
+                        project.objects.sourceDirectorySet("java${javaVersion.majorVersion}", javaVersion.toString())
                 sourceDirectorySet.with {
                     srcDir(new File(project.projectDir, "src/main/${sourceDirectorySet.name}"))
                     destinationDirectory.set(new File(project.buildDir, "classes/${sourceDirectorySet.name}"))
                     sourcePaths << sourceDirectories
                 }
-                TaskProvider<JavaCompile> compileTask = project.tasks.register("compileJava${javaVersion.majorVersion}", JavaCompile, {
+                TaskProvider<JavaCompile> compileTask = project.tasks.register(JavaPlugin.COMPILE_JAVA_TASK_NAME + javaVersion.majorVersion, JavaCompile, {
                     options.release.set(javaVersion.majorVersion.toInteger())
                     classpath = compileOutputs.stream().reduce { fc1, fc2 -> fc1 + fc2 }.get()
                     it.doFirst {
@@ -58,13 +60,13 @@ class MultiReleaseJarPlugin implements Plugin<Project> {
                 })
                 compileOutputs << compileJavaTask.outputs.files
                 sourceDirectorySet.compiledBy(compileTask, { it.getDestinationDirectory()})
-                jarTask.configure { Jar it ->
+                jarTask.configure {
                     from(compileTask.get().outputs.files) {
                         into("META-INF/versions/${javaVersion.majorVersion}")
                     }
                 }
             }
-            ["apiElements", "runtimeElements"].forEach {String name ->
+            ["apiElements", "runtimeElements"].forEach { String name ->
                 Configuration conf = project.configurations.getByName(name)
                 conf.attributes {
                     attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, compileJavaTask.options.release.get())
