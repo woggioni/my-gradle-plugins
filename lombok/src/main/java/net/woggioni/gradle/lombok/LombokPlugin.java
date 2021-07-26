@@ -7,11 +7,12 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskContainer;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.javadoc.Javadoc;
 
 import java.io.File;
@@ -25,11 +26,11 @@ public class LombokPlugin implements Plugin<Project> {
         LombokExtension ext = project.getExtensions()
                 .create("lombok", LombokExtension.class,
                         objectFactory.property(String.class)
-                            .convention((String) project.getExtensions().getExtraProperties().get("version.lombok"))
+                            .convention(project.provider(
+                                    () -> (String) project.getExtensions().getExtraProperties().get("version.lombok")))
                 );
-        JavaPluginConvention javaPluginConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
-        SourceSetContainer sourceSetContainer = javaPluginConvention.getSourceSets();
         project.afterEvaluate(p -> {
+            SourceSetContainer sourceSetContainer = project.getExtensions().findByType(JavaPluginExtension.class).getSourceSets();
             Provider<Map<String, String>> dependencyNotationProvider = project.provider(() ->
                     Map.of("group", "org.projectlombok",
                             "name", "lombok",
@@ -60,16 +61,19 @@ public class LombokPlugin implements Plugin<Project> {
                 if(javadocTask != null) {
                     String delombokTaskName = "delombok" + ss.getName().substring(0, 1).toUpperCase() + ss.getName().substring(1);
                     File outputDir = new File(new File(project.getBuildDir(), "delombok"), ss.getName());
-                    Provider<Delombok> delombokTask = tasks.register(delombokTaskName,
+                    Javadoc javadoc = (Javadoc) javadocTask;
+                    TaskProvider<Delombok> delombokTaskProvider = tasks.register(delombokTaskName,
                             Delombok.class,
                             lombokConfiguration.getSingleFile(),
                             outputDir,
                             ss.getJava().getSrcDirs(),
                             ss.getCompileClasspath().getAsPath()
                     );
-                    Javadoc javadoc = (Javadoc) javadocTask;
+                    delombokTaskProvider.configure(delombokTask -> {
+                        delombokTask.getInputs().files(ss.getAllSource().getSourceDirectories());
+                    });
                     javadoc.setSource(outputDir);
-                    javadoc.getInputs().files(delombokTask);
+                    javadoc.getInputs().files(delombokTaskProvider);
                 }
             }
         });
