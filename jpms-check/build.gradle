@@ -1,5 +1,5 @@
 plugins {
-    id 'java-gradle-plugin'
+    id 'groovy-gradle-plugin'
 }
 
 version = "0.1"

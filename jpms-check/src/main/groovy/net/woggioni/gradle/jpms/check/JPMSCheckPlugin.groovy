@@ -69,10 +69,10 @@ class JPMSCheckPlugin implements Plugin<Project> {
             String automaticModuleName = jarFile.manifest?.with {it.mainAttributes.getValue("Automatic-Module-Name") }
             def moduleInfoEntry = jarFile.getJarEntry("module-info.class")
             new CheckResult(
-                    dep: resolvedArtifact,
-                    moduleInfo: moduleInfoEntry != null,
-                    automaticModuleName: automaticModuleName,
-                    multiReleaseJar: jarFile.isMultiRelease()
+                    resolvedArtifact,
+                    automaticModuleName,
+                    jarFile.isMultiRelease(),
+                    moduleInfoEntry != null
             )
         }
     }
@@ -140,6 +140,7 @@ class JPMSCheckPlugin implements Plugin<Project> {
         }
     }
 
+    @CompileStatic
     private createJsonReport(Stream<CheckResult> checkResults, Writer writer) {
         def builder = new JsonBuilder()
         builder (checkResults.map {

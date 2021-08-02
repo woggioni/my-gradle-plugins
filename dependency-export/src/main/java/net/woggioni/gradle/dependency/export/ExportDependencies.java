@@ -10,12 +10,16 @@ import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
 import org.gradle.api.artifacts.result.*;
 import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.RegularFile;
+import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
@@ -32,23 +36,27 @@ import java.util.stream.Stream;
 
 public class ExportDependencies extends DefaultTask {
 
-    @Getter
-    @Setter
-    @Input
-    private Property<String> configurationName;
+    @Getter(onMethod_ = { @Input })
+    private final Property<String> configurationName;
 
     @Getter
-    @Setter
+    @Internal
+    private final RegularFileProperty outputFile;
+
+    @Input
+    public String getDestination() {
+        return outputFile.map(RegularFile::getAsFile).map(File::getAbsolutePath).get();
+    }
+
     @OutputFile
-    private Property<File> outputFile;
+    public Provider<File> getResult() {
+        return outputFile.map(RegularFile::getAsFile);
+    }
 
-    @Getter
-    @Setter
-    @Input
-    private Property<Boolean> showArtifacts;
+    @Getter(onMethod_ = { @Input })
+    private final Property<Boolean> showArtifacts;
 
     private final JavaPluginConvention javaPluginConvention;
-
 
     @InputFiles
     public Provider<FileCollection> getConfigurationFiles() {
@@ -62,7 +70,8 @@ public class ExportDependencies extends DefaultTask {
 
     @Option(option = "output", description = "Set the output file name")
     public void setOutput(String outputFile) {
-        this.outputFile.set(getProject().file(outputFile));
+        Provider<File> fileProvider = getProject().provider(() -> new File(outputFile));
+        this.outputFile.set(getProject().getLayout().file(fileProvider));
     }
 
     @Option(option = "showArtifacts", description = "Show artifacts")
@@ -73,9 +82,10 @@ public class ExportDependencies extends DefaultTask {
     @Inject
     public ExportDependencies(ObjectFactory objects) {
         javaPluginConvention = getProject().getConvention().getPlugin(JavaPluginConvention.class);
-        configurationName = objects.property(String.class).convention("runtimeClasspath");
-        outputFile = objects.property(File.class).convention(
-                getProject().provider(() -> new File(javaPluginConvention.getDocsDir(), "dependencies.dot")));
+        configurationName = objects.property(String.class).convention(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
+        Provider<File> defaultOutputFileProvider =
+                getProject().provider(() -> new File(javaPluginConvention.getDocsDir(), "dependencies.dot"));
+        outputFile = objects.fileProperty().convention(getProject().getLayout().file(defaultOutputFileProvider));
         showArtifacts = objects.property(Boolean.class).convention(false);
     }
 
@@ -85,9 +95,7 @@ public class ExportDependencies extends DefaultTask {
 
     @TaskAction
     @SneakyThrows
-    void run() {
-        Map<ResolvedComponentResult, Integer> map = new HashMap<>();
-
+    public void run() {
         Configuration requestedConfiguration = Optional.ofNullable(getProject().getConfigurations().named(configurationName.get()).getOrNull()).orElseThrow(() -> {
             String resolvableConfigurations = '[' + getProject().getConfigurations().stream()
                     .filter(Configuration::isCanBeResolved)
@@ -97,13 +105,13 @@ public class ExportDependencies extends DefaultTask {
                     "resolvable configurations in this project are %s", configurationName.get(), resolvableConfigurations));
         });
         ResolutionResult resolutionResult = requestedConfiguration.getIncoming().getResolutionResult();
-        Path destination = outputFile.map(it -> {
-            if (it.isAbsolute()) {
-                return it;
-            } else {
-                return new File(javaPluginConvention.getDocsDir(), it.toString());
-            }
-        }).map(File::toPath).get();
+        Path destination = outputFile.map(RegularFile::getAsFile).map(File::toPath).get();
+        doStuff(requestedConfiguration, resolutionResult, destination);
+    }
+
+    @SneakyThrows
+    private void doStuff(Configuration requestedConfiguration, ResolutionResult resolutionResult, Path destination) {
+        Map<ResolvedComponentResult, Integer> map = new HashMap<>();
         Files.createDirectories(destination.getParent());
         try(Writer writer = Files.newBufferedWriter(destination)) {
             writer.write("digraph G {");
@@ -160,17 +168,17 @@ public class ExportDependencies extends DefaultTask {
                     throw new IllegalArgumentException(id.getClass().getName());
                 }
                 Map<String, String> attrs = Stream.of(
-                    new AbstractMap.SimpleEntry<>("label", label),
-                    new AbstractMap.SimpleEntry<>("shape", quote(shape)),
-                    new AbstractMap.SimpleEntry<>("style", quote("filled")),
-                    artifacts.map(it -> new AbstractMap.SimpleEntry<>("margin", quote("0"))).orElse(null),
-                    new AbstractMap.SimpleEntry<>("fillcolor",  quote(color))
+                        new AbstractMap.SimpleEntry<>("label", label),
+                        new AbstractMap.SimpleEntry<>("shape", quote(shape)),
+                        new AbstractMap.SimpleEntry<>("style", quote("filled")),
+                        artifacts.map(it -> new AbstractMap.SimpleEntry<>("margin", quote("0"))).orElse(null),
+                        new AbstractMap.SimpleEntry<>("fillcolor",  quote(color))
                 ).filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 writer.write("    node_" + map.get(component) + " [" +
-                    attrs.entrySet().stream()
-                            .map(it -> it.getKey() + '=' + it.getValue())
-                            .collect(Collectors.joining(", ")) +
-                    "];");
+                        attrs.entrySet().stream()
+                                .map(it -> it.getKey() + '=' + it.getValue())
+                                .collect(Collectors.joining(", ")) +
+                        "];");
                 writer.write('\n');
             }
 
