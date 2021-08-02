@@ -1,0 +1,14 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+version = "0.1"
+
+gradlePlugin {
+    plugins {
+        create("JPMSCheckPlugin") {
+            id = "net.woggioni.plugins.jpms-check"
+            implementationClass = "net.woggioni.gradle.jpms.check.JPMSCheckPlugin"
+        }
+    }
+}
