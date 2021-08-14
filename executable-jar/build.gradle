@@ -1,0 +1,46 @@
+plugins {
+    id 'maven-publish'
+    id 'java-gradle-plugin'
+}
+
+version = "0.1"
+
+configurations {
+    embedded
+    compileOnly.extendsFrom(embedded)
+}
+
+dependencies {
+    embedded project(path: "executable-jar-common", configuration: "archives")
+}
+
+Provider<Copy> copyLauncher = tasks.register("copyLauncher", Copy) {
+    from(project("executable-jar-launcher").tasks.named("tar").map {it.outputs })
+    into(new File(project.buildDir, "resources/main/META-INF"))
+}
+
+tasks.named("processResources") {
+    inputs.files(copyLauncher)
+}
+
+jar {
+    manifest {
+        attributes "version" : archiveVersion.get()
+    }
+    from {
+        configurations.named('embedded').map {
+            it.collect {
+                it.isDirectory() ? it : zipTree(it)
+            }
+        }
+    }
+}
+
+gradlePlugin {
+    plugins {
+        create("JlinkPlugin") {
+            id = "net.woggioni.gradle.executable.jar"
+            implementationClass = "net.woggioni.gradle.executable.jar.ExecutableJarPlugin"
+        }
+    }
+}

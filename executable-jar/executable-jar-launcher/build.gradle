@@ -1,0 +1,47 @@
+import java.util.jar.Attributes
+plugins {
+    id 'java-library'
+}
+
+configurations {
+    embedded
+    compileOnly.extendsFrom(embedded)
+}
+
+dependencies {
+    embedded project(path: ":executable-jar:executable-jar-common", configuration: 'archives')
+}
+
+java {
+    modularity.inferModulePath = true
+}
+
+jar {
+    manifest {
+        attributes([
+           (Attributes.Name.SPECIFICATION_TITLE) : "executable-jar-launcher",
+           (Attributes.Name.SEALED) : true
+        ].collectEntries {
+            [it.key.toString(), it.value.toString()]
+        })
+    }
+}
+
+tasks.register("tar", Tar) {
+    archiveFileName = "${project.name}.tar"
+    from(sourceSets.main.output)
+    from {
+        configurations.named('embedded').map {
+            it.collect {
+                it.isDirectory() ? it : zipTree(it)
+            }
+        }
+    }
+}
+
+tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
+    doFirst {
+        String path = project(":executable-jar:executable-jar-common").extensions.getByType(JavaPluginExtension).sourceSets.named("main").get().output.asPath
+        options.compilerArgs.addAll(["--patch-module", "net.woggioni.executable.jar=$path"])
+    }
+}
