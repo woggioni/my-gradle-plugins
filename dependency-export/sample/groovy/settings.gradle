@@ -1,6 +1,10 @@
 pluginManagement {
   repositories {
-      mavenLocal()
-      gradlePluginPortal()
+      maven {
+          url = 'https://woggioni.net/mvn/'
+      }
+  }
+  plugins {
+    id "net.woggioni.gradle.dependency-export" version "0.1"
   }
 }

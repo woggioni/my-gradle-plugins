@@ -1,5 +1,6 @@
 package net.woggioni.gradle.lombok;
 
+import org.gradle.api.JavaVersion;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -13,10 +14,12 @@ import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.javadoc.Javadoc;
 
 import java.io.File;
 import java.util.Map;
+import org.gradle.jvm.toolchain.JavaToolchainSpec;
 
 public class LombokPlugin implements Plugin<Project> {
     @Override
@@ -75,6 +78,21 @@ public class LombokPlugin implements Plugin<Project> {
                     javadoc.setSource(outputDir);
                     javadoc.getInputs().files(delombokTaskProvider);
                 }
+            }
+            JavaPluginExtension javaPluginExtension = project.getExtensions().findByType(JavaPluginExtension.class);
+            JavaToolchainSpec toolchain = javaPluginExtension.getToolchain();
+            if(toolchain.getLanguageVersion().isPresent()) {
+                project.afterEvaluate((Project pro) -> {
+                    if(toolchain.getLanguageVersion().get().asInt() >= 16) {
+                        pro.getTasks().withType(JavaCompile.class, t -> {
+                            t.getOptions().getForkOptions().getJvmArgs().add("--illegal-access=permit");
+                        });
+                    }
+                });
+            } else if(JavaVersion.current().compareTo(JavaVersion.VERSION_16) >= 0) {
+                project.getTasks().withType(JavaCompile.class, t -> {
+                    t.getOptions().getForkOptions().getJvmArgs().add("--illegal-access=permit");
+                });
             }
         });
     }

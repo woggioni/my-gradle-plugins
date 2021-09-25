@@ -1,24 +1,13 @@
-buildscript {
-    repositories {
-        mavenLocal()
-    }
-
-    dependencies {
-        classpath "net.woggioni.gradle:dependency-export:0.1"
-    }
-}
-
 plugins {
-    id "net.woggioni.gradle.dependency-export" version "0.1"
+    id "net.woggioni.gradle.dependency-export"
 }
 
 repositories {
-    jcenter()
-    mavenLocal()
+    mavenCentral()
 }
 
 exportDependencies {
-    configurationName = 'runtimeCl'
+    configurationName = 'runtimeClasspath'
 }
 
 renderDependencies {

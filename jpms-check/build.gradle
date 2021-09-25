@@ -7,8 +7,13 @@ version = "0.1"
 gradlePlugin {
     plugins {
         create("JPMSCheckPlugin") {
-            id = "net.woggioni.plugins.jpms-check"
+            id = "net.woggioni.gradle.jpms-check"
             implementationClass = "net.woggioni.gradle.jpms.check.JPMSCheckPlugin"
         }
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }

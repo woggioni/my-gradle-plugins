@@ -6,7 +6,6 @@ subprojects {
             url = woggioniMavenRepositoryUrl
         }
         mavenCentral()
-        jcenter()
     }
     group = "net.woggioni.gradle"
 
@@ -22,28 +21,27 @@ subprojects {
     tasks.named("test", Test) {
         useJUnitPlatform()
     }
+}
 
-    java {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    publishing {
-        repositories {
-            maven {
-                url = woggioniMavenRepositoryUrl
+childProjects.forEach { name, project ->
+    project.with {
+        publishing {
+            repositories {
+                maven {
+                    url = woggioniMavenRepositoryUrl
+                }
             }
-        }
-        publications {
-            maven(MavenPublication) {
-                from(components["java"])
+            publications {
+                maven(MavenPublication) {
+                    from(components["java"])
+                }
             }
         }
     }
 }
 
 wrapper {
-    gradleVersion = "7.1.1"
+    gradleVersion = getProperty("version.gradle")
     distributionType = Wrapper.DistributionType.ALL
 }
 

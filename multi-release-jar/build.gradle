@@ -8,12 +8,12 @@ version = "0.1"
 gradlePlugin {
     plugins {
         create("MultiVersionJarPlugin") {
-            id = "net.woggioni.plugins.multi-version-jar"
-            implementationClass = "net.woggioni.plugins.multi.release.jar.MultiVersionJarPlugin"
+            id = "net.woggioni.gradle.multi-version-jar"
+            implementationClass = "net.woggioni.gradle.multi.release.jar.MultiVersionJarPlugin"
         }
         create("MultiReleaseJarPlugin") {
-            id = "net.woggioni.plugins.multi-release-jar"
-            implementationClass = "net.woggioni.plugins.multi.release.jar.MultiReleaseJarPlugin"
+            id = "net.woggioni.gradle.multi-release-jar"
+            implementationClass = "net.woggioni.gradle.multi.release.jar.MultiReleaseJarPlugin"
         }
     }
 }

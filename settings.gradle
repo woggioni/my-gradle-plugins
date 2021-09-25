@@ -2,11 +2,6 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
     }
-
-    plugins {
-        id 'org.jetbrains.kotlin.jvm' version this['version.kotlin']
-        id 'com.gradle.plugin-publish' version this['version.gradlePublish']
-    }
 }
 
 rootProject.name = "my-gradle-plugins"
@@ -17,6 +12,3 @@ include("multi-release-jar")
 include("wildfly")
 include("lombok")
 include("jlink")
-include("executable-jar")
-include("executable-jar:executable-jar-common")
-include("executable-jar:executable-jar-launcher")

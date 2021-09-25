@@ -1,4 +1,4 @@
-package net.woggioni.plugins.multi.release.jar
+package net.woggioni.gradle.multi.release.jar
 
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin

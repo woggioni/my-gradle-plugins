@@ -8,8 +8,8 @@ exportDependencies {
 }
 
 repositories {
-    jcenter()
     mavenLocal()
+    mavenCentral()
 }
 
 dependencies {
