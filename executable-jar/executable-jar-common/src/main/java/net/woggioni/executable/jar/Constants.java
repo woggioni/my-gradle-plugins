@@ -11,6 +11,8 @@ public class Constants {
     public static final String METADATA_FOLDER = "META-INF";
     public static final int BUFFER_SIZE = 0x10000;
     public static final String DEFAULT_LAUNCHER = "net.woggioni.executable.jar.Launcher";
+    public static final String AGENT_LAUNCHER = "net.woggioni.executable.jar.JavaAgentLauncher";
+    public static final String JAVA_AGENTS_FILE = METADATA_FOLDER + "/javaAgents.properties";
 
     public static class ManifestAttributes {
         public static final String MAIN_MODULE = "Executable-Jar-Main-Module";

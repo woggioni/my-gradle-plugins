@@ -1,19 +1,26 @@
 package net.woggioni.executable.jar;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
-import java.nio.file.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 
 /**
  * A classloader that loads classes from a {@link Path} instance
@@ -153,8 +160,30 @@ public final class PathClassLoader extends ClassLoader {
         @Override
         @SneakyThrows
         protected URLConnection openConnection(URL url) {
-            URI uri = url.toURI();
-            Path path = Paths.get(uri);
+            List<String> stack = new ArrayList<>();
+            URL currentURL = url;
+            while(true) {
+                String file = currentURL.getFile();
+                int exclamationMark = file.lastIndexOf('!');
+                if(exclamationMark != -1) {
+                    stack.add(file.substring(exclamationMark + 1));
+                    currentURL = new URL(file.substring(0, exclamationMark));
+                } else {
+                    stack.add(file);
+                    break;
+                }
+            }
+
+            Path path;
+            FileSystem fs = FileSystems.getDefault();
+            while(true) {
+                String pathString = stack.remove(stack.size() - 1);
+                path = fs.getPath(pathString);
+                if(stack.isEmpty()) break;
+                else {
+                    fs = FileSystems.newFileSystem(path,  null);
+                }
+            }
             return new PathURLConnection(url, path);
         }
     }

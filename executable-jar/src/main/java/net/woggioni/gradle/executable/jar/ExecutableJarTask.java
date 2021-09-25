@@ -2,9 +2,18 @@ package net.woggioni.gradle.executable.jar;
 
 import java.io.File;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.security.MessageDigest;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -27,8 +36,6 @@ import org.gradle.api.internal.file.copy.FileCopyDetailsInternal;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.JavaApplication;
-import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Optional;
@@ -41,7 +48,7 @@ import static java.util.zip.Deflater.BEST_COMPRESSION;
 import static java.util.zip.Deflater.NO_COMPRESSION;
 import static net.woggioni.executable.jar.Constants.*;
 
-@SuppressWarnings({ "UnstableApiUsage", "unused" })
+@SuppressWarnings({"unused" })
 public class ExecutableJarTask extends AbstractArchiveTask {
 
     private static final String MINIMUM_GRADLE_VERSION = "6.0";
@@ -59,6 +66,17 @@ public class ExecutableJarTask extends AbstractArchiveTask {
     @Getter(onMethod_ = {@Input, @Optional})
     private final Property<String> mainModule;
 
+    private final Properties javaAgents = new Properties();
+
+    @Input
+    public Set<Map.Entry<Object, Object>> getJavaAgents() {
+        return Collections.unmodifiableSet(javaAgents.entrySet());
+    }
+
+    public void javaAgent(String className, String args) {
+        javaAgents.put(className, args);
+    }
+
     public void includeLibraries(Object... files) {
         into(LIBRARIES_FOLDER, (copySpec) -> copySpec.from(files));
     }
@@ -69,11 +87,12 @@ public class ExecutableJarTask extends AbstractArchiveTask {
         setGroup("build");
         setDescription("Creates an executable jar file, embedding all of its runtime dependencies");
         BasePluginExtension basePluginExtension = getProject().getExtensions().getByType(BasePluginExtension.class);
-        getDestinationDirectory().set(basePluginExtension.getLibsDirectory());
+        getDestinationDirectory().set(basePluginExtension.getDistsDirectory());
         getArchiveBaseName().convention(getProject().getName());
         getArchiveExtension().convention("jar");
         getArchiveVersion().convention(getProject().getVersion().toString());
         getArchiveAppendix().convention("executable");
+        exclude("**/module-info.class");
 
         mainClass = objects.property(String.class);
         mainModule = objects.property(String.class);
@@ -200,6 +219,10 @@ public class ExecutableJarTask extends AbstractArchiveTask {
                 Attributes mainAttributes = manifest.getMainAttributes();
                 mainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0");
                 mainAttributes.put(Attributes.Name.MAIN_CLASS, DEFAULT_LAUNCHER);
+                mainAttributes.put(Attributes.Name.MULTI_RELEASE, "true");
+                mainAttributes.put(new Attributes.Name("Launcher-Agent-Class"), AGENT_LAUNCHER);
+                mainAttributes.put(new Attributes.Name("Can-Redefine-Classes"), "true");
+                mainAttributes.put(new Attributes.Name("Can-Retransform-Classes"), "true");
                 mainAttributes.putValue(Constants.ManifestAttributes.MAIN_CLASS, mainClass.get());
                 if(mainModule.isPresent()) {
                     mainAttributes.putValue(Constants.ManifestAttributes.MAIN_MODULE, mainModule.get());
@@ -228,7 +251,7 @@ public class ExecutableJarTask extends AbstractArchiveTask {
                 }
 
                 try (ZipOutputStream zipOutputStream = new ZipOutputStream(Common.write(destination, true));
-                     ZipInputStream zipInputStream = new ZipInputStream(Common.read(temporaryJar, true))) {
+                    ZipInputStream zipInputStream = new ZipInputStream(Common.read(temporaryJar, true))) {
                     zipOutputStream.setLevel(BEST_COMPRESSION);
                     ZipEntry zipEntry = zipEntryFactory.createDirectoryEntry(METADATA_FOLDER);
                     zipOutputStream.putNextEntry(zipEntry);
@@ -236,6 +259,10 @@ public class ExecutableJarTask extends AbstractArchiveTask {
                     zipEntry.setMethod(ZipEntry.DEFLATED);
                     zipOutputStream.putNextEntry(zipEntry);
                     manifest.write(zipOutputStream);
+                    zipEntry = zipEntryFactory.createZipEntry(JAVA_AGENTS_FILE);
+                    zipEntry.setMethod(ZipEntry.DEFLATED);
+                    zipOutputStream.putNextEntry(zipEntry);
+                    javaAgents.store(zipOutputStream, null);
 
                     while (true) {
                         zipEntry = zipInputStream.getNextEntry();

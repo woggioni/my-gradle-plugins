@@ -22,6 +22,7 @@ import java.util.stream.StreamSupport;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
+import org.gradle.internal.impldep.org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 
 public class FooTest {
@@ -78,6 +79,7 @@ public class FooTest {
     }
 
     @Test
+    @Ignore
     @SneakyThrows
     void test2() {
         FileSystem fs = FileSystems.newFileSystem(new URI("jar:file:/home/woggioni/code/wson/benchmark/build/libs/benchmark-executable-1.0.jar"), new HashMap<>());

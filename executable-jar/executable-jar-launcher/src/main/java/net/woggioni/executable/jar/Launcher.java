@@ -1,8 +1,6 @@
 package net.woggioni.executable.jar;
 
 import java.io.InputStream;
-import java.lang.module.Configuration;
-import java.lang.module.ModuleFinder;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
@@ -10,21 +8,22 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.SneakyThrows;
 import lombok.extern.java.Log;
+
 
 @Log
 public class Launcher {
@@ -50,9 +49,14 @@ public class Launcher {
         try(InputStream is = manifestResource.openStream()) {
             mf.read(is);
         }
-        try(FileSystem fs = FileSystems.newFileSystem(Path.of(currentJar.getPath()), null)) {
+        try(FileSystem fs = FileSystems.newFileSystem(Paths.get(currentJar), null)) {
             Attributes mainAttributes = mf.getMainAttributes();
 
+            Collector<Path, ArrayList<Path>, List<Path>> immutableListCollector = Collector.of(
+                    ArrayList::new,
+                    List::add,
+                    (l1, l2) -> { l1.addAll(l2); return l1; },
+                    Collections::unmodifiableList);
             List<Path> jarList = StreamSupport.stream(fs.getRootDirectories().spliterator(), false).flatMap(new Function<Path, Stream<Path>>() {
                 @Override
                 @SneakyThrows
@@ -67,32 +71,11 @@ public class Launcher {
                 public Stream<Path> apply(Path path) {
                     return StreamSupport.stream(FileSystems.newFileSystem(path, null).getRootDirectories().spliterator(), false);
                 }
-            }).collect(Collectors.toUnmodifiableList());
+            }).collect(immutableListCollector);
 
-//            for (Map.Entry<String, Attributes> entry : mf.getEntries().entrySet()) {
-//                String jarEntryName = entry.getKey();
-//                Attributes attributes = entry.getValue();
-//                if (jarEntryName.startsWith(Constants.LIBRARIES_FOLDER + '/') && attributes.getValue(Constants.ManifestAttributes.ENTRY_HASH) != null) {
-//                    jarList.add(fs.getPath(jarEntryName));
-//                }
-//            }
-
-            Path[] jars = jarList.toArray(new Path[jarList.size()]);
-            ClassLoader pathClassLoader = new PathClassLoader(jars);
             String mainClassName = mainAttributes.getValue(Constants.ManifestAttributes.MAIN_CLASS);
             String mainModuleName = mainAttributes.getValue(Constants.ManifestAttributes.MAIN_MODULE);
-            Class<?> mainClass;
-            if (mainModuleName == null) {
-                mainClass = pathClassLoader.loadClass(mainClassName);
-            } else {
-                ModuleLayer bootLayer = ModuleLayer.boot();
-                Configuration bootConfiguration = ModuleLayer.boot().configuration();
-                Configuration cfg = bootConfiguration.resolve(ModuleFinder.of(jars), ModuleFinder.of(), Arrays.asList(mainModuleName));
-                ModuleLayer layer = bootLayer.defineModulesWithOneLoader(cfg, pathClassLoader);
-                Module mainModule = layer.findModule(mainModuleName).orElseThrow(
-                        () -> new IllegalStateException(String.format("Main module '%s' not found", mainModuleName)));
-                mainClass = Class.forName(mainModule, mainClassName);
-            }
+            Class<?> mainClass = MainClassLoader.loadMainClass(jarList, mainModuleName, mainClassName);
             try {
                 Method mainMethod = mainClass.getMethod("main", String[].class);
                 Class<?> returnType = mainMethod.getReturnType();

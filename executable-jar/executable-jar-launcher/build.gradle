@@ -1,7 +1,18 @@
 import java.util.jar.Attributes
+
+buildscript {
+    dependencies {
+        classpath project(":multi-release-jar")
+    }
+}
+
 plugins {
     id 'java-library'
 }
+
+ext.setProperty("jpms.module.name", "net.woggioni.executable.jar")
+
+apply plugin: 'net.woggioni.gradle.multi-release-jar'
 
 configurations {
     embedded
@@ -10,10 +21,18 @@ configurations {
 
 dependencies {
     embedded project(path: ":executable-jar:executable-jar-common", configuration: 'archives')
+    embedded group: "net.woggioni", name: "xclassloader", version: getProperty("version.xclassloader")
 }
 
 java {
     modularity.inferModulePath = true
+}
+
+tasks.withType(JavaCompile).configureEach {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(16)
+    }
+    options.forkOptions.jvmArgs << "--illegal-access=permit"
 }
 
 jar {
@@ -29,13 +48,17 @@ jar {
 
 tasks.register("tar", Tar) {
     archiveFileName = "${project.name}.tar"
-    from(sourceSets.main.output)
-    from {
-        configurations.named('embedded').map {
-            it.collect {
-                it.isDirectory() ? it : zipTree(it)
-            }
+    from(project.tasks.named(JavaPlugin.JAR_TASK_NAME)
+            .flatMap(Jar.&getArchiveFile)
+            .map(RegularFile.&getAsFile)
+            .map(project.&zipTree))
+    from(configurations.named('embedded').map {
+        it.collect {
+            it.isDirectory() ? it : zipTree(it)
         }
+    }) {
+        exclude("**/module-info.class")
+        exclude("META-INF/MANIFEST.MF")
     }
 }
 

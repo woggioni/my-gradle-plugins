@@ -1,5 +1,4 @@
 plugins {
-    id 'maven-publish'
     id 'java-gradle-plugin'
 }
 
@@ -23,6 +22,11 @@ tasks.named("processResources") {
     inputs.files(copyLauncher)
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 jar {
     manifest {
         attributes "version" : archiveVersion.get()
@@ -38,8 +42,8 @@ jar {
 
 gradlePlugin {
     plugins {
-        create("JlinkPlugin") {
-            id = "net.woggioni.gradle.executable.jar"
+        create("ExecutableJarPlugin") {
+            id = "net.woggioni.gradle.executable-jar"
             implementationClass = "net.woggioni.gradle.executable.jar.ExecutableJarPlugin"
         }
     }
