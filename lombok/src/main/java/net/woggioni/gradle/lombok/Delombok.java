@@ -1,7 +1,6 @@
 package net.woggioni.gradle.lombok;
 
 import lombok.Getter;
-import org.gradle.api.file.Directory;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.OutputDirectory;
 

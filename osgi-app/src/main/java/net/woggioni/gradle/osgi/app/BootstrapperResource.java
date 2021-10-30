@@ -1,12 +1,13 @@
 package net.woggioni.gradle.osgi.app;
 
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URL;
-import javax.annotation.Nonnull;
 import lombok.SneakyThrows;
 import org.gradle.api.resources.ReadableResource;
 import org.gradle.api.resources.ResourceException;
+
+import javax.annotation.Nonnull;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URL;
 
 abstract class EmbeddedResource implements ReadableResource {
     private final URL url;

@@ -1,11 +1,5 @@
 package net.woggioni.gradle.jlink;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -31,6 +25,13 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
+
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class JlinkTask extends DefaultTask {

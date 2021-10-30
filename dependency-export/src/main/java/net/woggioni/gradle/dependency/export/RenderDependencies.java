@@ -1,7 +1,6 @@
 package net.woggioni.gradle.dependency.export;
 
 import lombok.Getter;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;

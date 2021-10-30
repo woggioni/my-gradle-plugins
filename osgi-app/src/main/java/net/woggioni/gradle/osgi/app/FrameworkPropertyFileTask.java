@@ -1,7 +1,6 @@
 package net.woggioni.gradle.osgi.app;
 
 import lombok.Getter;
-import lombok.Setter;
 import lombok.SneakyThrows;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.model.ObjectFactory;

@@ -16,10 +16,10 @@ import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.javadoc.Javadoc;
+import org.gradle.jvm.toolchain.JavaToolchainSpec;
 
 import java.io.File;
 import java.util.Map;
-import org.gradle.jvm.toolchain.JavaToolchainSpec;
 
 public class LombokPlugin implements Plugin<Project> {
     @Override

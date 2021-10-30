@@ -35,9 +35,9 @@ public class JavaAgentFileTask extends DefaultTask {
     @TaskAction
     @SneakyThrows
     public void run() {
-        try(Writer writer = Files.newBufferedWriter(getOutputFile().toPath())) {
+        try (Writer writer = Files.newBufferedWriter(getOutputFile().toPath())) {
             Properties props = new Properties();
-            for(JavaAgent javaAgent : javaAgents.get()) {
+            for (JavaAgent javaAgent : javaAgents.get()) {
                 props.setProperty(javaAgent.getClassName(), javaAgent.getArgs());
             }
             props.store(writer, null);
