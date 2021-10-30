@@ -1,13 +1,12 @@
 subprojects {
     apply plugin: 'java-library'
-    apply plugin: 'maven-publish'
+
     repositories {
         maven {
             url = woggioniMavenRepositoryUrl
         }
         mavenCentral()
     }
-    group = "net.woggioni.gradle"
 
     dependencies {
         ['compileOnly', 'annotationProcessor', 'testCompileOnly', 'testAnnotationProcessor'].each { conf ->
@@ -23,17 +22,16 @@ subprojects {
     }
 }
 
-childProjects.forEach { name, project ->
-    project.with {
+childProjects.forEach { name, child ->
+    child.with {
+        apply plugin: 'maven-publish'
+
+        group = "net.woggioni.gradle"
+
         publishing {
             repositories {
                 maven {
                     url = woggioniMavenRepositoryUrl
-                }
-            }
-            publications {
-                maven(MavenPublication) {
-                    from(components["java"])
                 }
             }
         }

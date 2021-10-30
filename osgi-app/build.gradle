@@ -1,0 +1,66 @@
+plugins {
+    id "java-gradle-plugin"
+}
+
+version = "0.1"
+
+childProjects.forEach {name, child ->
+    child.with {
+        apply plugin: 'maven-publish'
+
+        java {
+            sourceCompatibility = JavaVersion.VERSION_1_8
+            targetCompatibility = JavaVersion.VERSION_1_8
+        }
+        publishing {
+            repositories {
+                maven {
+                    url = woggioniMavenRepositoryUrl
+                }
+            }
+            publications {
+                maven(MavenPublication) {
+                    from(components["java"])
+                }
+            }
+        }
+    }
+}
+
+evaluationDependsOnChildren()
+
+configurations {
+    embedded {
+        transitive = false
+        visible = false
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    embedded project(path: "osgi-simple-bootstrapper", configuration: 'tar')
+    embedded project(path: "osgi-simple-bootstrapper-api")
+    embedded project(path: "osgi-simple-bootstrapper-application")
+
+    implementation group: 'biz.aQute.bnd', name: 'biz.aQute.bnd.gradle', version: getProperty('version.bnd')
+    implementation group: 'biz.aQute.bnd', name: 'biz.aQute.bndlib', version: getProperty('version.bnd')
+
+    ['annotationProcessor', 'testCompileOnly', 'testAnnotationProcessor'].each { conf ->
+        add(conf, [group: "org.projectlombok", name: "lombok", version: getProperty('version.lombok')])
+    }
+}
+
+jar {
+    into("META-INF") {
+        from(configurations.embedded)
+    }
+}
+
+gradlePlugin {
+    plugins {
+        osgiAppPlugin {
+            id = 'net.woggioni.gradle.osgi-app'
+            implementationClass = 'net.woggioni.gradle.osgi.app.OsgiAppPlugin'
+        }
+    }
+}

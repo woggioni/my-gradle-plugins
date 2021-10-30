@@ -7,7 +7,7 @@ pipeline {
         stage("Build") {
             steps {
                 sh "./gradlew clean build"
-                archiveArtifacts artifacts: '*/build/libs/*.jar',
+                archiveArtifacts artifacts: '*/build/libs/*.jar,osgi-app/*/build/libs/*.jar',
                                  allowEmptyArchive: true,
                                  fingerprint: true,
                                  onlyIfSuccessful: true
@@ -20,4 +20,3 @@ pipeline {
         }
     }
 }
-

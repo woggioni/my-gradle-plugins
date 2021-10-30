@@ -1,0 +1,28 @@
+plugins {
+    id 'java-library'
+    id 'biz.aQute.bnd.builder'
+}
+
+group = "net.woggioni.osgi"
+version = "0.1"
+
+dependencies {
+    compileOnly group: 'org.osgi', name: 'osgi.annotation', version: getProperty('version.osgi')
+    compileOnly group: 'org.osgi', name: 'osgi.core', version: getProperty('version.osgi')
+    compileOnly group: 'org.osgi', name: 'osgi.cmpn', version: getProperty('version.osgi')
+    compileOnly group: 'org.osgi',
+            name: 'org.osgi.service.component.annotations',
+            version: getProperty('version.osgi.service.component')
+
+    compileOnly project(":osgi-app:osgi-simple-bootstrapper-api")
+
+    runtimeOnly group: 'org.apache.felix', name: 'org.apache.felix.scr', version: getProperty('version.felix.scr')
+    runtimeOnly group: 'org.osgi', name: 'org.osgi.util.function', version: getProperty('version.osgi.function')
+    runtimeOnly group: 'org.osgi', name: 'org.osgi.util.promise', version: getProperty('version.osgi.promise')
+}
+
+jar {
+    bnd '''\
+        Import-Package: !lombok, *
+    '''
+}

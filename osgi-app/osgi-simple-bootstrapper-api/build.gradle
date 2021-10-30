@@ -1,0 +1,11 @@
+plugins {
+    id 'java-library'
+}
+
+group = "net.woggioni.osgi"
+version = "0.1"
+
+dependencies {
+    compileOnly group: 'org.osgi', name: 'osgi.annotation', version: getProperty('version.osgi')
+    compileOnly group: 'org.osgi', name: 'osgi.core', version: getProperty('version.osgi')
+}

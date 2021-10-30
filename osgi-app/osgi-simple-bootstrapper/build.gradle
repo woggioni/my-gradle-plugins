@@ -1,0 +1,36 @@
+plugins {
+    id 'java-library'
+}
+
+group = "net.woggioni.osgi"
+version = "0.1"
+
+configurations {
+    tar {
+        visible = true
+        canBeConsumed = true
+        transitive = false
+    }
+}
+
+dependencies {
+    compileOnly group: 'org.osgi', name: 'osgi.annotation', version: getProperty('version.osgi')
+    compileOnly group: 'org.osgi', name: 'osgi.core', version: getProperty('version.osgi')
+    compileOnly group: 'org.osgi',
+            name: 'org.osgi.service.component.annotations',
+            version: getProperty('version.osgi.service.component')
+
+    compileOnly project(":osgi-app:osgi-simple-bootstrapper-api")
+}
+
+Provider<Tar> tarTaskProvider = tasks.register("tar", Tar) {
+    archiveFileName = "${project.name}.tar"
+    from(project.tasks.named(JavaPlugin.JAR_TASK_NAME)
+            .flatMap { it.archiveFile }
+            .map { it.getAsFile() }
+            .map(project.&zipTree))
+}
+
+artifacts {
+    tar tarTaskProvider
+}

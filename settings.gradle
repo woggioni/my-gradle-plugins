@@ -2,13 +2,20 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
     }
+    plugins {
+        id 'biz.aQute.bnd.builder' version getProperty('version.bnd')
+    }
 }
 
 rootProject.name = "my-gradle-plugins"
 
-include("dependency-export")
-include("jpms-check")
-include("multi-release-jar")
-include("wildfly")
-include("lombok")
-include("jlink")
+include 'dependency-export'
+include 'jpms-check'
+include 'lombok'
+include 'multi-release-jar'
+include "osgi-app"
+include 'osgi-app:osgi-simple-bootstrapper'
+include 'osgi-app:osgi-simple-bootstrapper-api'
+include 'osgi-app:osgi-simple-bootstrapper-application'
+include 'wildfly'
+include 'jlink'
