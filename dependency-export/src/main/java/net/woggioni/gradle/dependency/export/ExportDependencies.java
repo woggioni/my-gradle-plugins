@@ -174,10 +174,10 @@ public class ExportDependencies extends DefaultTask {
                 String shape;
                 String color;
                 if(id instanceof ProjectComponentIdentifier) {
-                    shape = artifacts.isEmpty() ? "box" : "none";
+                    shape = !artifacts.isPresent() ? "box" : "none";
                     color = "#88ff88";
                 } else if(id instanceof ModuleComponentIdentifier) {
-                    shape = artifacts.isEmpty() ? "oval" : "none";
+                    shape = !artifacts.isPresent() ? "oval" : "none";
                     color = "#ffff88";
                 } else {
                     throw new IllegalArgumentException(id.getClass().getName());
