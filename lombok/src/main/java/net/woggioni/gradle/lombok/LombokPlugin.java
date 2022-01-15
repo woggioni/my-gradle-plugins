@@ -19,6 +19,8 @@ import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.jvm.toolchain.JavaToolchainSpec;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 public class LombokPlugin implements Plugin<Project> {
@@ -34,11 +36,13 @@ public class LombokPlugin implements Plugin<Project> {
                 );
         project.afterEvaluate(p -> {
             SourceSetContainer sourceSetContainer = project.getExtensions().findByType(JavaPluginExtension.class).getSourceSets();
-            Provider<Map<String, String>> dependencyNotationProvider = project.provider(() ->
-                    Map.of("group", "org.projectlombok",
-                            "name", "lombok",
-                            "version", ext.getVersion().get())
-            );
+            Provider<Map<String, String>> dependencyNotationProvider = project.provider(() -> {
+                 Map<String, String> m = new HashMap<>();
+                 m.put("group", "org.projectlombok");
+                 m.put("name", "lombok");
+                 m.put("version", ext.getVersion().get());
+                 return Collections.unmodifiableMap(m);
+            });
             Configuration lombokConfiguration = project.getConfigurations().create("lombok");
             project.getDependencies().addProvider(
                     lombokConfiguration.getName(),
