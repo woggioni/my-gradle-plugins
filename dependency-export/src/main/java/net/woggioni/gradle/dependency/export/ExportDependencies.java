@@ -75,7 +75,7 @@ public class ExportDependencies extends DefaultTask {
 
     @InputFiles
     public Provider<FileCollection> getConfigurationFiles() {
-        return configurationName.flatMap(name -> getProject().getConfigurations().named(name));
+        return configurationName.map(this::fetchConfiguration);
     }
 
     @Option(option = "configuration", description = "Set the configuration name")
@@ -107,18 +107,22 @@ public class ExportDependencies extends DefaultTask {
     private static String quote(String s) {
         return "\"" + s + "\"";
     }
-
-    @TaskAction
-    @SneakyThrows
-    public void run() {
-        Configuration requestedConfiguration = Optional.ofNullable(getProject().getConfigurations().named(configurationName.get()).getOrNull()).orElseThrow(() -> {
+    
+    private Configuration fetchConfiguration(String configurationName) {
+        return Optional.ofNullable(getProject().getConfigurations().findByName(configurationName)).orElseThrow(() -> {
             String resolvableConfigurations = '[' + getProject().getConfigurations().stream()
                     .filter(Configuration::isCanBeResolved)
                     .map(it -> '\'' + it.getName() + '\'')
                     .collect(Collectors.joining(", ")) + ']';
             throw new GradleException(String.format("Configuration '%s' doesn't exist or cannot be resolved, " +
-                    "resolvable configurations in this project are %s", configurationName.get(), resolvableConfigurations));
+                    "resolvable configurations in this project are %s", configurationName, resolvableConfigurations));
         });
+    }
+
+    @TaskAction
+    @SneakyThrows
+    public void run() { 
+        Configuration requestedConfiguration = fetchConfiguration(configurationName.get());
         ResolutionResult resolutionResult = requestedConfiguration.getIncoming().getResolutionResult();
         Path destination = outputFile.map(RegularFile::getAsFile).map(File::toPath).get();
         doStuff(requestedConfiguration, resolutionResult, destination);
