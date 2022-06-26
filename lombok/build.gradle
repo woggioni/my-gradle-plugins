@@ -2,13 +2,6 @@ plugins {
     id 'java-gradle-plugin'
 }
 
-version = "0.1"
-
-compileJava {
-    options.release = 8
-    options.compilerArgs << '-parameters'
-}
-
 gradlePlugin {
     plugins {
         create("LombokPlugin") {

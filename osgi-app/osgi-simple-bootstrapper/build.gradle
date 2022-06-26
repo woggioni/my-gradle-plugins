@@ -3,7 +3,6 @@ plugins {
 }
 
 group = "net.woggioni.osgi"
-version = "0.1"
 
 configurations {
     tar {

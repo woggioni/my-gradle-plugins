@@ -3,7 +3,6 @@ plugins {
 }
 
 group = "net.woggioni.osgi"
-version = "0.1"
 
 dependencies {
     compileOnly group: 'org.osgi', name: 'osgi.annotation', version: getProperty('version.osgi')

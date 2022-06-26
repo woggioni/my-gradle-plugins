@@ -2,16 +2,9 @@ plugins {
     id "java-gradle-plugin"
 }
 
-version = "0.1"
-
 childProjects.forEach {name, child ->
     child.with {
         apply plugin: 'maven-publish'
-
-        compileJava {
-            options.release = 8
-            options.compilerArgs << '-parameters'
-        }
 
         publishing {
             repositories {
@@ -49,11 +42,6 @@ dependencies {
     ['annotationProcessor', 'testCompileOnly', 'testAnnotationProcessor'].each { conf ->
         add(conf, [group: "org.projectlombok", name: "lombok", version: getProperty('version.lombok')])
     }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 jar {

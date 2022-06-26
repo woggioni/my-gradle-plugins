@@ -3,8 +3,6 @@ plugins {
     id 'groovy-gradle-plugin'
 }
 
-version = "0.1"
-
 gradlePlugin {
     plugins {
         create("MultiVersionJarPlugin") {
@@ -16,9 +14,4 @@ gradlePlugin {
             implementationClass = "net.woggioni.gradle.multi.release.jar.MultiReleaseJarPlugin"
         }
     }
-}
-
-compileJava {
-    options.release = 8
-    options.compilerArgs << '-parameters'
 }

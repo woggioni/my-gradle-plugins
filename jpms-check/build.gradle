@@ -2,8 +2,6 @@ plugins {
     id 'groovy-gradle-plugin'
 }
 
-version = "0.1"
-
 gradlePlugin {
     plugins {
         create("JPMSCheckPlugin") {
@@ -11,9 +9,4 @@ gradlePlugin {
             implementationClass = "net.woggioni.gradle.jpms.check.JPMSCheckPlugin"
         }
     }
-}
-
-compileJava {
-    options.release = 8
-    options.compilerArgs << '-parameters'
 }

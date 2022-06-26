@@ -1,5 +1,30 @@
-subprojects {
+subprojects { subproject ->
     apply plugin: 'java-library'
+
+    version = getProperty('version.myGradlePlugins')
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(11)
+        }
+    }
+
+    int javaVersion
+    if(subproject.path == ':osgi-app') {
+        javaVersion = 11
+    } else {
+        javaVersion = 8
+    }
+    tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
+        options.release = javaVersion
+        options.compilerArgs << '-parameters'
+    }
+
+    pluginManager.withPlugin('groovy') {
+        tasks.named("compileGroovy", GroovyCompile) {
+            options.release = javaVersion
+        }
+    }
 
     repositories {
         maven {

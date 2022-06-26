@@ -5,19 +5,12 @@ plugins {
 dependencies {
 }
 
-compileJava {
-    options.release = 8
-    options.compilerArgs << '-parameters'
-}
-
 ["apiElements", "runtimeElements"].each { String name ->
     def conf = project.configurations.getByName(name)
     conf.attributes {
         attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
     }
 }
-
-version = 0.2
 
 gradlePlugin {
     plugins {
