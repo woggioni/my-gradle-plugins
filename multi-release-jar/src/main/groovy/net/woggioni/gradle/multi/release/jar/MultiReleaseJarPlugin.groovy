@@ -5,6 +5,7 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
+import org.gradle.api.attributes.LibraryElements
 import org.gradle.api.attributes.java.TargetJvmVersion
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.SourceDirectorySet
@@ -16,6 +17,9 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
 
+import static org.gradle.api.attributes.LibraryElements.JAR
+import static org.gradle.api.attributes.LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE
+
 class MultiReleaseJarPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
@@ -26,6 +30,12 @@ class MultiReleaseJarPlugin implements Plugin<Project> {
         } ?: JavaVersion.current()
         if(binaryVersion > JavaVersion.VERSION_1_8) {
             Configuration compileClasspathConfiguration = project.configurations.compileClasspath
+            project.configurations.named(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME) {
+                attributes {
+                    attribute(LIBRARY_ELEMENTS_ATTRIBUTE, project.objects.named(LibraryElements.class, JAR))
+                }
+            }
+
             SourceSet mainSourceSet = (project.sourceSets.main as SourceSet)
             JavaCompile compileJavaTask = project.tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile).get()
             compileJavaTask.configure {
