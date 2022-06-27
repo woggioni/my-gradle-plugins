@@ -77,6 +77,7 @@ class MultiReleaseJarPlugin implements Plugin<Project> {
                     javaCompileTask.options.annotationProcessorPath = mainSourceSet.annotationProcessorPath
                     javaCompileTask.modularity.inferModulePath = javaPluginExtension.modularity.inferModulePath
                     javaCompileTask.options.sourcepath = sourcePaths.stream().reduce { fc1, fc2 -> fc1 + fc2 }.get()
+                    javaCompileTask.javaCompiler = compileJavaTask.javaCompiler
                 })
                 compileOutputs << compileTask.get().outputs.files
                 sourceDirectorySet.compiledBy(compileTask, { it.getDestinationDirectory()})
