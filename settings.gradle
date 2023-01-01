@@ -1,9 +1,17 @@
-pluginManagement {
+dependencyResolutionManagement {
     repositories {
-        gradlePluginPortal()
+        maven {
+            url = 'https://woggioni.net/mvn/'
+            content {
+                includeGroup 'com.lys'
+            }
+        }
     }
-    plugins {
-        id 'biz.aQute.bnd.builder' version getProperty('version.bnd')
+    versionCatalogs {
+        catalog {
+            from group: 'com.lys', name: 'lys-catalog', version: getProperty('lys.catalog.version')
+            version("slf4j", "1.7.36")
+        }
     }
 }
 

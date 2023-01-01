@@ -36,7 +36,7 @@ public class JavaAgentLauncher {
         }
     }
 
-    static void agentmain(String agentArguments, Instrumentation instrumentation) {
+    public static void agentmain(String agentArguments, Instrumentation instrumentation) {
         premain(agentArguments, instrumentation);
     }
 }

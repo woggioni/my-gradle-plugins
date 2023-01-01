@@ -7,6 +7,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFile;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
@@ -35,8 +36,8 @@ public class Deploy2WildflyTask extends Exec {
     @Getter
     private final Property<String> rpcPassword;
 
-    @Input
     @Getter
+    @InputFile
     private final RegularFileProperty artifact;
 
     private String projectProperty(String key, String defaultValue) {

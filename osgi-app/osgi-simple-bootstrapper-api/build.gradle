@@ -5,6 +5,6 @@ plugins {
 group = "net.woggioni.osgi"
 
 dependencies {
-    compileOnly group: 'org.osgi', name: 'osgi.annotation', version: getProperty('version.osgi')
-    compileOnly group: 'org.osgi', name: 'osgi.core', version: getProperty('version.osgi')
+    compileOnly catalog.osgi.annotation
+    compileOnly catalog.osgi.core
 }

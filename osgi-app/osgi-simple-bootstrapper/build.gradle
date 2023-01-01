@@ -13,12 +13,9 @@ configurations {
 }
 
 dependencies {
-    compileOnly group: 'org.osgi', name: 'osgi.annotation', version: getProperty('version.osgi')
-    compileOnly group: 'org.osgi', name: 'osgi.core', version: getProperty('version.osgi')
-    compileOnly group: 'org.osgi',
-            name: 'org.osgi.service.component.annotations',
-            version: getProperty('version.osgi.service.component')
-
+    compileOnly catalog.osgi.core
+    compileOnly catalog.osgi.annotation
+    compileOnly catalog.osgi.service.component.annotations
     compileOnly project(":osgi-app:osgi-simple-bootstrapper-api")
 }
 

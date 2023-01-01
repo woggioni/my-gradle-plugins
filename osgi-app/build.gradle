@@ -36,12 +36,8 @@ dependencies {
     embedded project(path: "osgi-simple-bootstrapper-api")
     embedded project(path: "osgi-simple-bootstrapper-application")
 
-    implementation group: 'biz.aQute.bnd', name: 'biz.aQute.bnd.gradle', version: getProperty('version.bnd')
-    implementation group: 'biz.aQute.bnd', name: 'biz.aQute.bndlib', version: getProperty('version.bnd')
-
-    ['annotationProcessor', 'testCompileOnly', 'testAnnotationProcessor'].each { conf ->
-        add(conf, [group: "org.projectlombok", name: "lombok", version: getProperty('version.lombok')])
-    }
+    implementation catalog.bndlib
+    implementation group: 'biz.aQute.bnd', name: 'biz.aQute.bnd.gradle', version: catalog.versions.bnd.get()
 }
 
 jar {
