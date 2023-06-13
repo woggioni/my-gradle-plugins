@@ -147,7 +147,7 @@ class MultiReleaseJarPlugin implements Plugin<Project> {
                         project.objects.sourceDirectorySet("java${javaVersion.majorVersion}", javaVersion.toString())
                 sourceDirectorySet.with {
                     srcDir(new File(project.projectDir, "src/${mainSourceSet.name}/${sourceDirectorySet.name}"))
-                    destinationDirectory.set(new File(project.buildDir, "classes/${sourceDirectorySet.name}"))
+                    destinationDirectory.set(new File(project.buildDir, "classes/${mainSourceSet.name}/${sourceDirectorySet.name}"))
                     sourcePaths << sourceDirectories
                 }
                 new DslObject(mainSourceSet).getConvention().getPlugins().put(sourceDirectorySet.name, sourceDirectorySet)
