@@ -5,12 +5,12 @@ subprojects { subproject ->
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(11)
+            languageVersion = JavaLanguageVersion.of(17)
         }
     }
 
     int javaVersion
-    if(subproject.path == ':osgi-app') {
+    if(subproject.path == ':osgi-app' || ':multi-release-jar') {
         javaVersion = 11
     } else {
         javaVersion = 8
