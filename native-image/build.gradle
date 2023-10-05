@@ -1,0 +1,13 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+
+gradlePlugin {
+    plugins {
+        create("NativeImagePlugin") {
+            id = "net.woggioni.gradle.native-image"
+            implementationClass = "net.woggioni.gradle.nativeimage.NativeImagePlugin"
+        }
+    }
+}

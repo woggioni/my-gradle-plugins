@@ -1,0 +1,16 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+dependencies {
+    implementation catalog.jgit
+}
+
+gradlePlugin {
+    plugins {
+        create("SambalPlugin") {
+            id = "net.woggioni.gradle.sambal"
+            implementationClass = "net.woggioni.gradle.sambal.SambalPlugin"
+        }
+    }
+}
