@@ -1,14 +1,12 @@
-package net.woggioni.gradle.nativeimage;
+package net.woggioni.gradle.graalvm;
 
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskContainer;
@@ -19,10 +17,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.StreamSupport;
 
-import static net.woggioni.gradle.nativeimage.NativeImagePlugin.NATIVE_IMAGE_CONFIGURATION_FOLDER_NAME;
-import static net.woggioni.gradle.nativeimage.NativeImagePlugin.NATIVE_IMAGE_TASK_GROUP;
+import static net.woggioni.gradle.graalvm.Constants.GRAALVM_TASK_GROUP;
+import static net.woggioni.gradle.graalvm.NativeImagePlugin.NATIVE_IMAGE_CONFIGURATION_FOLDER_NAME;
 
 public abstract class NativeImageConfigurationTask extends JavaExec {
 
@@ -30,7 +27,7 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
     public abstract DirectoryProperty getConfigurationDir();
 
     public NativeImageConfigurationTask() {
-        setGroup(NATIVE_IMAGE_TASK_GROUP);
+        setGroup(GRAALVM_TASK_GROUP);
         setDescription("Run the application with the native-image-agent " +
                 "to create a configuration for native image creation");
         ProjectLayout layout = getProject().getLayout();

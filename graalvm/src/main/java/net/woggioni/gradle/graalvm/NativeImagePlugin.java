@@ -1,10 +1,12 @@
-package net.woggioni.gradle.nativeimage;
+package net.woggioni.gradle.graalvm;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.plugins.JavaLibraryPlugin;
@@ -21,8 +23,6 @@ public class NativeImagePlugin implements Plugin<Project> {
     public static final String CONFIGURE_NATIVE_IMAGE_TASK_NAME = "configureNativeImage";
     public static final String NATIVE_IMAGE_CONFIGURATION_FOLDER_NAME = "native-image";
 
-    public static final String NATIVE_IMAGE_TASK_GROUP = "native image";
-
     @Override
     public void apply(Project project) {
         project.getPluginManager().apply(JavaLibraryPlugin.class);
@@ -33,6 +33,7 @@ public class NativeImagePlugin implements Plugin<Project> {
                 .orElseGet(() -> extensionContainer.create("application", JavaApplication.class));
 
         TaskContainer tasks = project.getTasks();
+
         Provider<Jar> jarTaskProvider = tasks.named(JavaPlugin.JAR_TASK_NAME, Jar.class, jar -> {
             jar.from(layout.getProjectDirectory().dir(NATIVE_IMAGE_CONFIGURATION_FOLDER_NAME), copySpec -> {
                 copySpec.into(
@@ -43,12 +44,20 @@ public class NativeImagePlugin implements Plugin<Project> {
                 );
             });
         });
-        tasks.register(CONFIGURE_NATIVE_IMAGE_TASK_NAME, NativeImageConfigurationTask.class);
-        tasks.register(NATIVE_IMAGE_TASK_NAME, NativeImageTask.class, nativeImageTask -> {
+
+        Provider<NativeImageConfigurationTask> nativeImageConfigurationTaskProvider =
+            tasks.register(CONFIGURE_NATIVE_IMAGE_TASK_NAME, NativeImageConfigurationTask.class);
+
+        Provider<NativeImageTask> nativeImageTaskProvider = tasks.register(NATIVE_IMAGE_TASK_NAME, NativeImageTask.class, nativeImageTask -> {
+            nativeImageTask.getInputs().files(nativeImageConfigurationTaskProvider);
             ConfigurationContainer configurations = project.getConfigurations();
             FileCollection classpath = project.files(jarTaskProvider,
                     configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME));
             nativeImageTask.getClasspath().set(classpath);
+        });
+
+        tasks.named(BasePlugin.ASSEMBLE_TASK_NAME, Task.class, t -> {
+            t.getInputs().files(nativeImageTaskProvider);
         });
     }
 }

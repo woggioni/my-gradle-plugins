@@ -1,5 +1,6 @@
-package net.woggioni.gradle.nativeimage;
+package net.woggioni.gradle.graalvm;
 
+import lombok.SneakyThrows;
 import org.gradle.api.Project;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
@@ -11,6 +12,7 @@ import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Classpath;
@@ -18,6 +20,7 @@ import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.internal.jvm.JavaModuleDetector;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
@@ -26,15 +29,19 @@ import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.process.CommandLineArgumentProvider;
 
 import javax.inject.Inject;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import static java.util.Optional.ofNullable;
-import static net.woggioni.gradle.nativeimage.NativeImagePlugin.NATIVE_IMAGE_TASK_GROUP;
+import static net.woggioni.gradle.graalvm.Constants.GRAALVM_TASK_GROUP;
 
-public abstract class NativeImageTask extends Exec {
+public abstract class JlinkTask extends Exec {
 
     @Classpath
     public abstract Property<FileCollection> getClasspath();
@@ -43,30 +50,29 @@ public abstract class NativeImageTask extends Exec {
     public abstract DirectoryProperty getGraalVmHome();
 
     @Input
-    public abstract Property<Boolean> getUseJpms();
-    @Input
-    public abstract Property<Boolean> getEnableFallback();
-
-    @Input
+    @Optional
     public abstract Property<String> getMainClass();
 
     @Input
     @Optional
     public abstract Property<String> getMainModule();
 
+    @Input
+    public abstract ListProperty<String> getAdditionalModules();
+
     @Inject
     protected abstract JavaModuleDetector getJavaModuleDetector();
 
-    @OutputFile
-    protected abstract RegularFileProperty getOutputFile();
+    @OutputDirectory
+    public abstract DirectoryProperty getOutputDir();
     private final Logger logger;
-    public NativeImageTask() {
+    public JlinkTask() {
         Project project = getProject();
         logger = project.getLogger();
-        setGroup(NATIVE_IMAGE_TASK_GROUP);
-        setDescription("Create a native image of the application using GraalVM");
-        getUseJpms().convention(false);
-        getEnableFallback().convention(false);
+        setGroup(GRAALVM_TASK_GROUP);
+        setDescription(
+            "Generates a custom Java runtime image that contains only the platform modules" +
+                " that are required for a given application");
         ExtensionContainer ext = project.getExtensions();
         JavaApplication javaApplication = ext.findByType(JavaApplication.class);
         if(!Objects.isNull(javaApplication)) {
@@ -83,45 +89,70 @@ public abstract class NativeImageTask extends Exec {
             javaLauncher.map(JavaLauncher::getMetadata).map(JavaInstallationMetadata::getInstallationPath)
         ).orElseGet(() -> layout.dir(project.provider(() ->project.file(System.getProperty("java.home")))));
         getGraalVmHome().convention(graalHomeDirectoryProvider);
+        getAdditionalModules().convention(new ArrayList<>());
 
         BasePluginExtension basePluginExtension =
                 ext.getByType(BasePluginExtension.class);
-        getOutputFile().convention(basePluginExtension.getLibsDirectory().file(project.getName()));
+        getOutputDir().convention(
+            basePluginExtension.getLibsDirectory()
+                .dir(project.getName() +
+                    ofNullable(project.getVersion()).map(it -> "-" + it).orElse(""))
+        );
         Object executableProvider = new Object() {
             @Override
             public String toString() {
-                return getGraalVmHome().get() + "/bin/native-image";
+                return getGraalVmHome().get() + "/bin/jlink";
             }
         };
         executable(executableProvider);
-
         CommandLineArgumentProvider argumentProvider = new CommandLineArgumentProvider() {
             @Override
+            @SneakyThrows
             public Iterable<String> asArguments() {
                 List<String> result = new ArrayList<>();
-                if(!getEnableFallback().get()) {
-                    result.add("--no-fallback");
-                }
+                result.add("--compress=2");
                 JavaModuleDetector javaModuleDetector = getJavaModuleDetector();
-                boolean useJpms = getUseJpms().get();
                 FileCollection classpath = getClasspath().get();
-                FileCollection cp = javaModuleDetector.inferClasspath(useJpms, classpath);
-                FileCollection mp = javaModuleDetector.inferModulePath(useJpms, classpath);
-                if(!cp.isEmpty()) {
-                    result.add("-cp");
-                    result.add(cp.getAsPath());
-                }
+                FileCollection mp = javaModuleDetector.inferModulePath(true, classpath);
                 if(!mp.isEmpty()) {
                     result.add("-p");
                     result.add(mp.getAsPath());
                 }
-                result.add("-o");
-                result.add(getOutputFile().get().getAsFile().toString());
-                result.add(getMainClass().get());
-                logger.info("Native image arguments: " + String.join(" ", result));
+
+                if(getMainModule().isPresent()) {
+                    result.add("--launcher");
+                    String launcherArg = project.getName() + '=' +
+                            getMainModule().get() +
+                            ofNullable(getMainClass().getOrElse(null)).map(it -> '/' + it).orElse("");
+                    result.add(launcherArg);
+                }
+                result.add("--output");
+                result.add(getOutputDir().get().getAsFile().toString());
+                List<String> additionalModules = getAdditionalModules().get();
+                if(getMainModule().isPresent() || !additionalModules.isEmpty()) {
+                    result.add("--add-modules");
+                    ofNullable(getMainModule().getOrElse(null)).ifPresent(result::add);
+                    additionalModules.forEach(result::add);
+                }
                 return Collections.unmodifiableList(result);
             }
         };
         getArgumentProviders().add(argumentProvider);
+
+    }
+
+    @Override
+    @SneakyThrows
+    protected void exec() {
+        Files.walk(getOutputDir().get().getAsFile().toPath())
+                .sorted(Comparator.reverseOrder())
+                .forEach(new Consumer<Path>() {
+                    @Override
+                    @SneakyThrows
+                    public void accept(Path path) {
+                        Files.delete(path);
+                    }
+                });
+        super.exec();
     }
 }

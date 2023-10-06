@@ -1,0 +1,20 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+
+gradlePlugin {
+    plugins {
+        create("NativeImagePlugin") {
+            id = 'net.woggioni.gradle.graalvm.native-image'
+            implementationClass = "net.woggioni.gradle.graalvm.NativeImagePlugin"
+        }
+    }
+
+    plugins {
+        create("JlinkPlugin") {
+            id = 'net.woggioni.gradle.graalvm.jlink'
+            implementationClass = "net.woggioni.gradle.graalvm.JlinkPlugin"
+        }
+    }
+}
