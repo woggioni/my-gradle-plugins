@@ -4,13 +4,18 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.plugins.JavaPlugin;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.Jar;
+import org.gradle.jvm.toolchain.JavaLauncher;
+import org.gradle.jvm.toolchain.JavaToolchainService;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +38,12 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
         ProjectLayout layout = getProject().getLayout();
         TaskContainer taskContainer = getProject().getTasks();
         JavaApplication javaApplication = getProject().getExtensions().findByType(JavaApplication.class);
+        JavaPluginExtension javaExtension = getProject().getExtensions().getByType(JavaPluginExtension.class);
+        ExtensionContainer ext = getProject().getExtensions();
+        Property<JavaLauncher> javaLauncherProperty = getJavaLauncher();
+        Optional.ofNullable(ext.findByType(JavaToolchainService.class))
+                .flatMap(ts -> Optional.ofNullable(javaExtension.getToolchain()).map(ts::launcherFor))
+                .ifPresent(javaLauncherProperty::set);
         if(!Objects.isNull(javaApplication)) {
             getMainClass().convention(javaApplication.getMainClass());
             getMainModule().convention(javaApplication.getMainModule());
