@@ -10,12 +10,14 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
+import org.gradle.process.CommandLineArgumentProvider;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +29,8 @@ import static net.woggioni.gradle.graalvm.Constants.GRAALVM_TASK_GROUP;
 import static net.woggioni.gradle.graalvm.NativeImagePlugin.NATIVE_IMAGE_CONFIGURATION_FOLDER_NAME;
 
 public abstract class NativeImageConfigurationTask extends JavaExec {
+    @Input
+    public abstract Property<Boolean> getMergeConfiguration();
 
     @OutputDirectory
     public abstract DirectoryProperty getConfigurationDir();
@@ -50,6 +54,7 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
         }
         getConfigurationDir().convention(layout.getProjectDirectory()
                 .dir(NATIVE_IMAGE_CONFIGURATION_FOLDER_NAME));
+        getMergeConfiguration().convention(true);
         ConfigurationContainer cc = getProject().getConfigurations();
         Configuration runtimeClasspath = cc.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
         setClasspath(runtimeClasspath);
@@ -60,11 +65,20 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
                 runtimeClasspath
             )
         );
-        List<String> jvmArgs = new ArrayList<>();
-        jvmArgs.add("-agentlib:native-image-agent=config-output-dir=" + getConfigurationDir().get());
-        for(String jvmArg : Optional.ofNullable(javaApplication.getApplicationDefaultJvmArgs()).orElse(Collections.emptyList())) {
-            jvmArgs.add(jvmArg);
-        }
-        jvmArgs(jvmArgs);
+        getJvmArgumentProviders().add(new CommandLineArgumentProvider() {
+            @Override
+            public Iterable<String> asArguments() {
+                List<String> jvmArgs = new ArrayList<>();
+                if(getMergeConfiguration().get()) {
+                    jvmArgs.add("-agentlib:native-image-agent=config-merge-dir=" + getConfigurationDir().get());
+                } else {
+                    jvmArgs.add("-agentlib:native-image-agent=config-output-dir=" + getConfigurationDir().get());
+                }
+                for(String jvmArg : Optional.ofNullable(javaApplication.getApplicationDefaultJvmArgs()).orElse(Collections.emptyList())) {
+                    jvmArgs.add(jvmArg);
+                }
+                return jvmArgs;
+            }
+        });
     }
 }

@@ -87,7 +87,7 @@ public abstract class NativeImageTask extends Exec {
             javaToolchainService.launcherFor(javaToolchainSpec)
         ).map(javaLauncher ->
             javaLauncher.map(JavaLauncher::getMetadata).map(JavaInstallationMetadata::getInstallationPath)
-        ).orElseGet(() -> layout.dir(project.provider(() ->project.file(System.getProperty("java.home")))));
+        ).orElseGet(() -> layout.dir(project.provider(() -> project.file(System.getProperty("java.home")))));
         getGraalVmHome().convention(graalHomeDirectoryProvider);
 
         BasePluginExtension basePluginExtension =
