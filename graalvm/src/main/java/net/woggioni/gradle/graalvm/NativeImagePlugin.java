@@ -55,9 +55,5 @@ public class NativeImagePlugin implements Plugin<Project> {
                     configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME));
             nativeImageTask.getClasspath().set(classpath);
         });
-
-        tasks.named(BasePlugin.ASSEMBLE_TASK_NAME, Task.class, t -> {
-            t.getInputs().files(nativeImageTaskProvider);
-        });
     }
 }

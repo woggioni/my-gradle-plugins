@@ -49,9 +49,5 @@ public class JlinkPlugin implements Plugin<Project> {
             zip.from(jlinTaskProvider);
         });
 
-        tasks.named(BasePlugin.ASSEMBLE_TASK_NAME, Task.class, t -> {
-            t.getInputs().files(jlinkZipTaskProvider);
-        });
-
     }
 }
