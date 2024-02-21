@@ -18,7 +18,9 @@ dependencies {
 }
 
 jar {
-    bnd '''\
-        Import-Package: !lombok, *
-    '''
+    bundle {
+        bnd '''\
+            Import-Package: !lombok, *
+        '''
+    }
 }

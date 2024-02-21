@@ -1,19 +1,16 @@
 package net.woggioni.gradle.wildfly;
 
-import lombok.Getter;
 import org.gradle.api.file.RegularFileProperty;
-import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 
-import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.util.Arrays;
 
-public class Deploy2WildflyTask extends Exec {
+public abstract class Deploy2WildflyTask extends Exec {
     private static final String PROPERTY_PREFIX = "net.woggioni.gradle.wildfly.";
     private static final String HOST_PROPERTY_KEY = PROPERTY_PREFIX + "rpcHost";
     private static final String PORT_PROPERTY_KEY = PROPERTY_PREFIX + "rpcPort";
@@ -21,24 +18,21 @@ public class Deploy2WildflyTask extends Exec {
     private static final String PASSWORD_PROPERTY_KEY = PROPERTY_PREFIX + "rpcPassword";
 
     @Input
-    @Getter
-    private final Property<String> rpcHost;
+    public abstract Property<String> getRpcHost();
 
     @Input
-    @Getter
-    private final Property<Integer> rpcPort;
+    public abstract Property<Integer> getRpcPort();
 
     @Input
-    @Getter
-    private final Property<String> rpcUsername;
+    public abstract Property<String> getRpcUsername();
 
     @Input
-    @Getter
-    private final Property<String> rpcPassword;
-
-    @Getter
+    public abstract Property<String> getRpcPassword();
     @InputFile
-    private final RegularFileProperty artifact;
+    public abstract Property<String> getDeploymentName();
+
+    @InputFile
+    public abstract RegularFileProperty getArtifact();
 
     private String projectProperty(String key, String defaultValue) {
         String result = (String) getProject().findProperty(key);
@@ -46,7 +40,7 @@ public class Deploy2WildflyTask extends Exec {
     }
 
     @Inject
-    public Deploy2WildflyTask(@Nonnull ObjectFactory objectFactory) {
+    public Deploy2WildflyTask() {
         setGroup("deploy");
         setDescription("Deploy this project artifact to Wildfly application server");
         Provider<String> defaultHostProvider = getProject()
@@ -59,19 +53,22 @@ public class Deploy2WildflyTask extends Exec {
                 .provider(() -> projectProperty(PASSWORD_PROPERTY_KEY, "password"));
 
         executable("/opt/wildfly/bin/jboss-cli.sh");
-        rpcHost = objectFactory.property(String.class).convention(defaultHostProvider);
-        rpcPort = objectFactory.property(Integer.class).convention(defaultPortProvider);
-        rpcUsername = objectFactory.property(String.class).convention(defaultUsernameProvider);
-        rpcPassword = objectFactory.property(String.class).convention(defaultPasswordProvider);
-        artifact = objectFactory.fileProperty();
-
+        getRpcHost().convention(defaultHostProvider);
+        getRpcPort().convention(defaultPortProvider);
+        getRpcUsername().convention(defaultUsernameProvider);
+        getRpcPassword().convention(defaultPasswordProvider);
+        getDeploymentName().convention(getArtifact().map(it -> it.getAsFile().getName()));
         getArgumentProviders().add(() ->
             Arrays.asList(
-                    "--controller=" + rpcHost.get() + ":" + rpcPort.get(),
+                    "--controller=" + getRpcHost().get() + ":" + getRpcPort().get(),
                     "--connect",
-                    "--user=" + rpcUsername.get(),
-                    "--password=" + rpcPassword.get(),
-                    "--command=deploy "  + artifact.getAsFile().get().getPath() + " --force")
+                    "--user=" + getRpcUsername().get(),
+                    "--password=" + getRpcPassword().get(),
+                    "--command=deploy "
+                            + getArtifact().getAsFile().get().getPath()
+                            + "--name "
+                            + getDeploymentName().get()
+                            + " --force")
         );
     }
 }
