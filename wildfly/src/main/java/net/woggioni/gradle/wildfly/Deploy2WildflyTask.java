@@ -28,7 +28,7 @@ public abstract class Deploy2WildflyTask extends Exec {
 
     @Input
     public abstract Property<String> getRpcPassword();
-    @InputFile
+    @Input
     public abstract Property<String> getDeploymentName();
 
     @InputFile
@@ -66,8 +66,7 @@ public abstract class Deploy2WildflyTask extends Exec {
                     "--password=" + getRpcPassword().get(),
                     "--command=deploy "
                             + getArtifact().getAsFile().get().getPath()
-                            + "--name "
-                            + getDeploymentName().get()
+                            + " --name=" + getDeploymentName().get()
                             + " --force")
         );
     }
