@@ -10,7 +10,7 @@ subprojects { subproject ->
     }
 
     int javaVersion
-    if(subproject.path == ':osgi-app' || ':multi-release-jar') {
+    if(subproject.path == ':osgi-app' || subproject.path == ':multi-release-jar') {
         javaVersion = 11
     } else {
         javaVersion = 8

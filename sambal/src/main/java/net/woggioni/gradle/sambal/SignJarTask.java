@@ -1,5 +1,7 @@
 package net.woggioni.gradle.sambal;
 
+import org.codehaus.groovy.ant.Groovy;
+import org.codehaus.groovy.util.StringUtil;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFile;
@@ -48,7 +50,7 @@ abstract class SignJarTask extends DefaultTask {
     public Provider<RegularFile> getArchiveFile() {
         StringBuilder sb = new StringBuilder(getArchiveBaseName().get());
         sb.append('-').append(getArchiveVersion().get());
-        if(getArchiveClassifier().isPresent() && !getArchiveClassifier().get().isBlank()) {
+        if(getArchiveClassifier().isPresent() && !getArchiveClassifier().get().isEmpty()) {
             sb.append('-').append(getArchiveClassifier().get());
         }
         sb.append('.').append(getArchiveExtension().get());
