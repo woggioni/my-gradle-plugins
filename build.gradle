@@ -1,6 +1,8 @@
 subprojects { subproject ->
     apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
 
+    group = "net.woggioni.gradle"
     version = getProperty('version.myGradlePlugins')
 
     java {
@@ -27,12 +29,6 @@ subprojects { subproject ->
     }
 
     repositories {
-        maven {
-            url = woggioniMavenRepositoryUrl
-            content {
-                includeGroup 'net.woggioni'
-            }
-        }
         mavenCentral()
     }
 
@@ -45,26 +41,29 @@ subprojects { subproject ->
         add("testImplementation", gradleTestKit())
     }
 
-    tasks.named("test", Test) {
+    tasks.withType(Test) {
         useJUnitPlatform()
     }
-}
 
-childProjects.forEach { name, child ->
-    child.with {
-        apply plugin: 'maven-publish'
+    publishing {
+        repositories {
+            maven {
+                name = "Gitea"
+                url = uri("https://gitea.woggioni.net/api/packages/woggioni/maven")
 
-        group = "net.woggioni.gradle"
+                credentials(HttpHeaderCredentials) {
+                    name = "Authorization"
+                    value = "token ${System.getenv()["PUBLISHER_TOKEN"]}"
+                }
 
-        publishing {
-            repositories {
-                maven {
-                    url = woggioniMavenRepositoryUrl
+                authentication {
+                    header(HttpHeaderAuthentication)
                 }
             }
         }
     }
 }
+
 
 wrapper {
     gradleVersion = getProperty("version.gradle")

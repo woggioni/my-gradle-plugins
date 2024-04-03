@@ -75,7 +75,9 @@ public class LombokPlugin implements Plugin<Project> {
                     delombok.getSourceSet().set(ss);
                     delombok.getOutputDir().set(outputDir);
                     delombok.getLombokJar().set(lombokConfiguration);
-                    delombok.getInferModulePath().set(javaPluginExtension.getModularity().getInferModulePath());
+                    // Disabled for now due to https://github.com/projectlombok/lombok/issues/2829
+                    //delombok.getInferModulePath().set(javaPluginExtension.getModularity().getInferModulePath());
+                    delombok.getInferModulePath().set(false);
                 }));
                 javadoc.setSource(outputDir);
                 javadoc.getInputs().files(delombokTaskProvider);

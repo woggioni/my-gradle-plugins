@@ -2,25 +2,6 @@ plugins {
     id "java-gradle-plugin"
 }
 
-childProjects.forEach {name, child ->
-    child.with {
-        apply plugin: 'maven-publish'
-
-        publishing {
-            repositories {
-                maven {
-                    url = woggioniMavenRepositoryUrl
-                }
-            }
-            publications {
-                maven(MavenPublication) {
-                    from(components["java"])
-                }
-            }
-        }
-    }
-}
-
 evaluationDependsOnChildren()
 
 configurations {
