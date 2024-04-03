@@ -1,7 +1,7 @@
 dependencyResolutionManagement {
     repositories {
         maven {
-            url = 'https://woggioni.net/mvn/'
+            url = getProperty('gitea.maven.url')
             content {
                 includeGroup 'com.lys'
             }
