@@ -18,6 +18,7 @@ import org.gradle.api.plugins.AppliedPlugin;
 import org.gradle.api.plugins.ExtraPropertiesExtension;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.PluginManager;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.Jar;
 
@@ -208,11 +209,11 @@ public class SambalPlugin implements Plugin<Project> {
     public void apply(Project project) {
         ExtraPropertiesExtension ext = project.getRootProject().getExtensions().getExtraProperties();
         ext.set("getIntegerVersion", new MethodClosure(this, "getVersionInt").curry(project));
-        ext.set("currentTag", getCurrentTag(project));
+        ext.set("currentTag", project.provider(() -> getCurrentTag(project)));
         ext.set("resolveProperty", new MethodClosure(this, "resolveProperty").curry(project));
         ext.set("copyConfigurationAttributes", new MethodClosure(this, "copyConfigurationAttributes"));
-        final String gitRevision = getGitRevision(project);
-        ext.set("gitRevision", gitRevision);
+        final Provider<String> gitRevisionProvider = project.provider(() -> getGitRevision(project));
+        ext.set("gitRevision", gitRevisionProvider);
 
         PluginManager pluginManager = project.getPluginManager();
         pluginManager.withPlugin("java-library", (AppliedPlugin plugin) -> {
@@ -223,7 +224,7 @@ public class SambalPlugin implements Plugin<Project> {
                         Attributes attrs = mf.getAttributes();
                         attrs.put(java.util.jar.Attributes.Name.SPECIFICATION_TITLE.toString(), project.getName());
                         attrs.put(java.util.jar.Attributes.Name.SPECIFICATION_VERSION.toString(), project.getVersion());
-                        attrs.put(java.util.jar.Attributes.Name.IMPLEMENTATION_VERSION.toString(), gitRevision);
+                        attrs.put(java.util.jar.Attributes.Name.IMPLEMENTATION_VERSION.toString(), gitRevisionProvider);
                     });
                 });
             });
