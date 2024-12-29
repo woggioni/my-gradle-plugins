@@ -1,5 +1,7 @@
 package net.woggioni.gradle.sambal;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.codehaus.groovy.runtime.MethodClosure;
 import org.eclipse.jgit.api.Git;
@@ -13,12 +15,13 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.attributes.Attribute;
 import org.gradle.api.attributes.AttributeContainer;
 import org.gradle.api.java.archives.Attributes;
-import org.gradle.api.logging.Logger;
 import org.gradle.api.plugins.AppliedPlugin;
 import org.gradle.api.plugins.ExtraPropertiesExtension;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.PluginManager;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ValueSource;
+import org.gradle.api.provider.ValueSourceParameters;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.Jar;
 
@@ -28,6 +31,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,9 +49,6 @@ import java.util.stream.Stream;
 public class SambalPlugin implements Plugin<Project> {
     private static Pattern tagPattern = Pattern.compile("^refs/tags/v?(\\d+\\.\\d+.*)");
     final private static char[] hexArray = "0123456789ABCDEF".toCharArray();
-
-    private static final String currentTagCachedKey = "CURRENT_TAG_CACHED";
-    private static final String currentRevCachedKey = "CURRENT_REV_CACHED";
 
     private static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
@@ -132,7 +133,7 @@ public class SambalPlugin implements Plugin<Project> {
     }
 
     @SneakyThrows
-    private static String getCurrentTag(Git git, Logger logger) {
+    private static List<String> getCurrentTag(Git git) {
         List<Ref> tags = git.tagList().call();
         Ref currentRef = git.getRepository().findRef("HEAD");
         List<String> currentTag = tags.stream()
@@ -142,41 +143,8 @@ public class SambalPlugin implements Plugin<Project> {
                 .collect(Collectors.toList());
         if (currentTag.isEmpty()) return null;
         else {
-            if (currentTag.size() > 1) {
-                logger.warn("Found more than one tag in correct format for HEAD.");
-            }
-            return currentTag.get(0);
+            return currentTag;
         }
-    }
-
-    @SneakyThrows
-    private static String getCurrentTag(Project project) {
-        ExtraPropertiesExtension ext = project.getRootProject().getExtensions().getExtraProperties();
-        if (!ext.has(currentTagCachedKey)) {
-            Git git = Git.open(project.getRootDir());
-            Status status = git.status().call();
-            String currentTag;
-            if (status.isClean() && (currentTag = getCurrentTag(git, project.getLogger())) != null) {
-                ext.set(currentTagCachedKey, currentTag);
-            } else {
-                ext.set(currentTagCachedKey, null);
-            }
-        }
-        return Optional.ofNullable(ext.get(currentTagCachedKey))
-                .map(Object::toString)
-                .orElse(null);
-    }
-
-    @SneakyThrows
-    private static String getGitRevision(Project project) {
-        ExtraPropertiesExtension ext = project.getRootProject().getExtensions().getExtraProperties();
-        if (!ext.has(currentRevCachedKey)) {
-            Git git = Git.open(project.getRootDir());
-            ext.set(currentRevCachedKey, git.getRepository().findRef("HEAD").getObjectId().name());
-        }
-        return Optional.ofNullable(ext.get(currentRevCachedKey))
-                .map(Object::toString)
-                .orElse(null);
     }
 
     private static String resolveProperty(Project project, String key, String defaultValue) {
@@ -205,14 +173,56 @@ public class SambalPlugin implements Plugin<Project> {
         }
     }
 
+    @Getter
+    @Setter
+    public static class ProjectParameters implements ValueSourceParameters, Serializable {
+        private File rootDirectory;
+    }
+
+    public abstract static class GitTagValueSource implements ValueSource<List<String>, ProjectParameters> {
+        @Override
+        @SneakyThrows
+        public List<String> obtain() {
+            File rootDirectory = getParameters().getRootDirectory();
+            try(Git git = Git.open(rootDirectory)) {
+                Status status = git.status().call();
+                if (status.isClean()) {
+                    return getCurrentTag(git);
+                } else {
+                    return null;
+                }
+            }
+        }
+    }
+
+    public abstract static class GitRevisionValueSource implements ValueSource<String, ProjectParameters> {
+
+        @Override
+        @SneakyThrows
+        public String obtain() {
+            File rootDirectory = getParameters().getRootDirectory();
+            try (Git git = Git.open(rootDirectory)) {
+                return git.getRepository().findRef("HEAD").getObjectId().name();
+            }
+        }
+    }
+
     @Override
     public void apply(Project project) {
         ExtraPropertiesExtension ext = project.getRootProject().getExtensions().getExtraProperties();
         ext.set("getIntegerVersion", new MethodClosure(this, "getVersionInt").curry(project));
-        ext.set("currentTag", project.provider(() -> getCurrentTag(project)));
+
+
+        final Provider<List<String>> gitTagProvider = project.getProviders().of(GitTagValueSource.class, it -> {
+            it.parameters( params -> params.setRootDirectory(project.getRootDir()));
+        });
+        ext.set("currentTag", gitTagProvider);
         ext.set("resolveProperty", new MethodClosure(this, "resolveProperty").curry(project));
         ext.set("copyConfigurationAttributes", new MethodClosure(this, "copyConfigurationAttributes"));
-        final Provider<String> gitRevisionProvider = project.provider(() -> getGitRevision(project));
+
+        final Provider<String> gitRevisionProvider = project.getProviders().of(GitRevisionValueSource.class, it -> {
+            it.parameters( params -> params.setRootDirectory(project.getRootDir()));
+        });
         ext.set("gitRevision", gitRevisionProvider);
 
         PluginManager pluginManager = project.getPluginManager();
