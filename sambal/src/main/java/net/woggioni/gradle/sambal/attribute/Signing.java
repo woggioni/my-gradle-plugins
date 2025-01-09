@@ -6,7 +6,6 @@ import org.gradle.api.attributes.AttributeCompatibilityRule;
 import org.gradle.api.attributes.AttributeDisambiguationRule;
 import org.gradle.api.attributes.CompatibilityCheckDetails;
 import org.gradle.api.attributes.MultipleCandidatesDetails;
-import org.gradle.api.internal.ReusableAction;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -19,7 +18,7 @@ public interface Signing extends Named {
     String signed = "signed";
     String unsigned = "unsigned";
 
-    class CompatibilityRules implements AttributeCompatibilityRule<Signing>, ReusableAction {
+    class CompatibilityRules implements AttributeCompatibilityRule<Signing> {
         public void execute(CompatibilityCheckDetails<Signing> details) {
             Signing consumerValue = details.getConsumerValue();
             Signing producerValue = details.getProducerValue();
@@ -35,7 +34,7 @@ public interface Signing extends Named {
         }
     }
 
-    class DisambiguationRules implements AttributeDisambiguationRule<Signing>, ReusableAction {
+    class DisambiguationRules implements AttributeDisambiguationRule<Signing> {
         private static final List<String> ORDER = Arrays.asList(unsigned, signed);
         private static final Comparator<Signing> comparator =
                 Comparator.comparingInt(signing -> ORDER.indexOf(signing.getName()));

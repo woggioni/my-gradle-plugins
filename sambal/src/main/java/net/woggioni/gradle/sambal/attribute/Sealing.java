@@ -6,7 +6,6 @@ import org.gradle.api.attributes.AttributeCompatibilityRule;
 import org.gradle.api.attributes.AttributeDisambiguationRule;
 import org.gradle.api.attributes.CompatibilityCheckDetails;
 import org.gradle.api.attributes.MultipleCandidatesDetails;
-import org.gradle.api.internal.ReusableAction;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -19,7 +18,7 @@ public interface Sealing extends Named {
     String sealed = "sealed";
     String open = "open";
 
-    class CompatibilityRules implements AttributeCompatibilityRule<Sealing>, ReusableAction {
+    class CompatibilityRules implements AttributeCompatibilityRule<Sealing> {
         public void execute(CompatibilityCheckDetails<Sealing> details) {
             Sealing consumerValue = details.getConsumerValue();
             Sealing producerValue = details.getProducerValue();
@@ -35,7 +34,7 @@ public interface Sealing extends Named {
         }
     }
 
-    class DisambiguationRules implements AttributeDisambiguationRule<Sealing>, ReusableAction {
+    class DisambiguationRules implements AttributeDisambiguationRule<Sealing> {
         private static final List<String> ORDER = Arrays.asList(open, sealed);
         private static final Comparator<Sealing> comparator =
                 Comparator.comparingInt(sealing -> ORDER.indexOf(sealing.getName()));
