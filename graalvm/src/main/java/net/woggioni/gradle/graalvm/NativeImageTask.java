@@ -43,8 +43,6 @@ public abstract class NativeImageTask extends Exec {
     public abstract DirectoryProperty getGraalVmHome();
 
     @Input
-    public abstract Property<Boolean> getUseJpms();
-    @Input
     public abstract Property<Boolean> getUseMusl();
     @Input
     public abstract Property<Boolean> getBuildStaticImage();
@@ -69,7 +67,6 @@ public abstract class NativeImageTask extends Exec {
         logger = project.getLogger();
         setGroup(GRAALVM_TASK_GROUP);
         setDescription("Create a native image of the application using GraalVM");
-        getUseJpms().convention(false);
         getUseMusl().convention(false);
         getBuildStaticImage().convention(false);
         getEnableFallback().convention(false);
@@ -115,7 +112,7 @@ public abstract class NativeImageTask extends Exec {
                     result.add("--libc=musl");
                 }
                 JavaModuleDetector javaModuleDetector = getJavaModuleDetector();
-                boolean useJpms = getUseJpms().get();
+                boolean useJpms = getMainModule().isPresent();
                 FileCollection classpath = getClasspath().get();
                 FileCollection cp = javaModuleDetector.inferClasspath(useJpms, classpath);
                 FileCollection mp = javaModuleDetector.inferModulePath(useJpms, classpath);
@@ -129,7 +126,15 @@ public abstract class NativeImageTask extends Exec {
                 }
                 result.add("-o");
                 result.add(getOutputFile().get().getAsFile().toString());
-                result.add(getMainClass().get());
+                if(getMainModule().isPresent()) {
+                    result.add("--module");
+                    String mainModule = getMainModule().get();
+                    result.add(getMainClass()
+                            .map(mainClass -> String.format("%s/%s", mainModule, mainClass))
+                            .getOrElse(mainModule));
+                } else {
+                    result.add(getMainClass().get());
+                }
                 return Collections.unmodifiableList(result);
             }
         };
