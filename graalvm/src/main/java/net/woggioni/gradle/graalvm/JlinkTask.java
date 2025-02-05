@@ -6,8 +6,8 @@ import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.ProjectLayout;
-import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
@@ -21,7 +21,6 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
-import org.gradle.api.tasks.OutputFile;
 import org.gradle.internal.jvm.JavaModuleDetector;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLauncher;
@@ -60,15 +59,23 @@ public abstract class JlinkTask extends Exec {
     @Input
     public abstract ListProperty<String> getAdditionalModules();
 
+    @Input
+    public abstract Property<Boolean> getBindServices();
+
+    @Input
+    @Optional
+    public abstract Property<Integer> getCompressionLevel();
+
     @Inject
     protected abstract JavaModuleDetector getJavaModuleDetector();
 
     @OutputDirectory
     public abstract DirectoryProperty getOutputDir();
-    private final Logger logger;
+
+    private static final Logger log = Logging.getLogger(JlinkTask.class);
+
     public JlinkTask() {
         Project project = getProject();
-        logger = project.getLogger();
         setGroup(GRAALVM_TASK_GROUP);
         setDescription(
             "Generates a custom Java runtime image that contains only the platform modules" +
@@ -90,6 +97,7 @@ public abstract class JlinkTask extends Exec {
         ).orElseGet(() -> layout.dir(project.provider(() ->project.file(System.getProperty("java.home")))));
         getGraalVmHome().convention(graalHomeDirectoryProvider);
         getAdditionalModules().convention(new ArrayList<>());
+        getBindServices().convention(false);
 
         BasePluginExtension basePluginExtension =
                 ext.getByType(BasePluginExtension.class);
@@ -110,7 +118,13 @@ public abstract class JlinkTask extends Exec {
             @SneakyThrows
             public Iterable<String> asArguments() {
                 List<String> result = new ArrayList<>();
-                result.add("--compress=2");
+                final Property<Integer> compressionLevelProperty= getCompressionLevel();
+                if(compressionLevelProperty.isPresent()) {
+                    result.add(String.format("--compress=zip-%d", compressionLevelProperty.get()));
+                }
+                if(getBindServices().get()) {
+                    result.add("--bind-services");
+                }
                 JavaModuleDetector javaModuleDetector = getJavaModuleDetector();
                 FileCollection classpath = getClasspath().get();
                 FileCollection mp = javaModuleDetector.inferModulePath(true, classpath);
@@ -131,8 +145,12 @@ public abstract class JlinkTask extends Exec {
                 List<String> additionalModules = getAdditionalModules().get();
                 if(getMainModule().isPresent() || !additionalModules.isEmpty()) {
                     result.add("--add-modules");
-                    ofNullable(getMainModule().getOrElse(null)).ifPresent(result::add);
-                    additionalModules.forEach(result::add);
+                    final List<String> modules2BeAdded = new ArrayList<>();
+                    ofNullable(getMainModule().getOrElse(null)).ifPresent(modules2BeAdded::add);
+                    modules2BeAdded.addAll(additionalModules);
+                    if(!modules2BeAdded.isEmpty()) {
+                        result.add(String.join(",", modules2BeAdded));
+                    }
                 }
                 return Collections.unmodifiableList(result);
             }
