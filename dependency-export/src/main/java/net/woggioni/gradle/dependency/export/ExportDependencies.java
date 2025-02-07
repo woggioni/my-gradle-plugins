@@ -24,6 +24,7 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
@@ -48,6 +49,8 @@ import java.util.Set;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static net.woggioni.gradle.dependency.export.DependencyExportPlugin.DEPENDENCY_EXPORT_GROUP;
 
 public class ExportDependencies extends DefaultTask {
 
@@ -74,6 +77,7 @@ public class ExportDependencies extends DefaultTask {
     private final JavaPluginConvention javaPluginConvention;
 
     @InputFiles
+    @Classpath
     public Provider<FileCollection> getConfigurationFiles() {
         return configurationName.map(this::fetchConfiguration);
     }
@@ -96,6 +100,7 @@ public class ExportDependencies extends DefaultTask {
 
     @Inject
     public ExportDependencies(ObjectFactory objects) {
+        setGroup(DEPENDENCY_EXPORT_GROUP);
         javaPluginConvention = getProject().getConvention().getPlugin(JavaPluginConvention.class);
         configurationName = objects.property(String.class).convention(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
         Provider<File> defaultOutputFileProvider =

@@ -8,6 +8,9 @@ import org.gradle.api.plugins.ObjectConfigurationAction;
 import org.gradle.api.provider.Provider;
 
 public class DependencyExportPlugin implements Plugin<Project> {
+
+    public static final String DEPENDENCY_EXPORT_GROUP = "dependency-export";
+
     @Override
     public void apply(Project project) {
         project.apply(new Action<ObjectConfigurationAction>() {

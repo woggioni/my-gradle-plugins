@@ -7,6 +7,7 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
@@ -48,6 +49,8 @@ public abstract class NativeImageTask extends Exec {
     public abstract Property<Boolean> getBuildStaticImage();
     @Input
     public abstract Property<Boolean> getEnableFallback();
+    @Input
+    public abstract Property<Boolean> getLinkAtBuildTime();
 
     @Input
     public abstract Property<String> getMainClass();
@@ -61,15 +64,17 @@ public abstract class NativeImageTask extends Exec {
 
     @OutputFile
     protected abstract RegularFileProperty getOutputFile();
-    private final Logger logger;
+
+    private static final Logger log = Logging.getLogger(NativeImageTask.class);
+
     public NativeImageTask() {
         Project project = getProject();
-        logger = project.getLogger();
         setGroup(GRAALVM_TASK_GROUP);
         setDescription("Create a native image of the application using GraalVM");
         getUseMusl().convention(false);
         getBuildStaticImage().convention(false);
         getEnableFallback().convention(false);
+        getLinkAtBuildTime().convention(false);
         ExtensionContainer ext = project.getExtensions();
         JavaApplication javaApplication = ext.findByType(JavaApplication.class);
         if(!Objects.isNull(javaApplication)) {
@@ -110,6 +115,9 @@ public abstract class NativeImageTask extends Exec {
                 }
                 if(getUseMusl().get()) {
                     result.add("--libc=musl");
+                }
+                if(getLinkAtBuildTime().get()) {
+                    result.add("--link-at-build-time");
                 }
                 JavaModuleDetector javaModuleDetector = getJavaModuleDetector();
                 boolean useJpms = getMainModule().isPresent();
