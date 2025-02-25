@@ -74,7 +74,9 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
                 } else {
                     jvmArgs.add("-agentlib:native-image-agent=config-output-dir=" + getConfigurationDir().get());
                 }
-                for(String jvmArg : Optional.ofNullable(javaApplication.getApplicationDefaultJvmArgs()).orElse(Collections.emptyList())) {
+                for(String jvmArg : Optional.ofNullable(javaApplication)
+                        .map(JavaApplication::getApplicationDefaultJvmArgs)
+                        .orElse(Collections.emptyList())) {
                     jvmArgs.add(jvmArg);
                 }
                 return jvmArgs;

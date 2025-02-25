@@ -224,6 +224,7 @@ public class SambalPlugin implements Plugin<Project> {
             it.parameters( params -> params.setRootDirectory(project.getRootDir()));
         });
         ext.set("gitRevision", gitRevisionProvider);
+        ext.set("which", new MethodClosure(this, "which").curry(project));
 
         PluginManager pluginManager = project.getPluginManager();
         pluginManager.withPlugin("java-library", (AppliedPlugin plugin) -> {

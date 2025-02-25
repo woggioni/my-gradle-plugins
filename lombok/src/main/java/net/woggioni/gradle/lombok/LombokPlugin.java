@@ -28,7 +28,6 @@ public class LombokPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
         project.getPluginManager().apply(JavaPlugin.class);
-        ObjectFactory objectFactory = project.getObjects();
         LombokExtension ext = project.getExtensions().create("lombok", LombokExtension.class);
         ExtraPropertiesExtension epe = project.getExtensions().getExtraProperties();
         if(epe.has("version.lombok")) {
