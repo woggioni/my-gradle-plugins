@@ -14,12 +14,15 @@ import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.internal.jvm.JavaModuleDetector;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLauncher;
@@ -35,12 +38,14 @@ import java.util.Objects;
 import static java.util.Optional.ofNullable;
 import static net.woggioni.gradle.graalvm.Constants.GRAALVM_TASK_GROUP;
 
+@CacheableTask
 public abstract class NativeImageTask extends Exec {
 
     @Classpath
     public abstract Property<FileCollection> getClasspath();
 
     @InputDirectory
+    @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getGraalVmHome();
 
     @Input
