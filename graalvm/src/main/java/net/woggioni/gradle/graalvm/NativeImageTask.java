@@ -19,6 +19,7 @@ import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.PathSensitive;
@@ -30,6 +31,7 @@ import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.process.CommandLineArgumentProvider;
 
 import javax.inject.Inject;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,12 +43,19 @@ import static net.woggioni.gradle.graalvm.Constants.GRAALVM_TASK_GROUP;
 @CacheableTask
 public abstract class NativeImageTask extends Exec {
 
+    public static final String NATIVE_COMPILER_PATH_ENV_VARIABLE = "GRAAL_NATIVE_COMPILER_PATH";
+    public static final String NATIVE_COMPILER_PATH_PROPERTY_KEY = "graal.native.compiler.path";
+
     @Classpath
     public abstract Property<FileCollection> getClasspath();
 
     @InputDirectory
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getGraalVmHome();
+
+    @InputFile
+    @PathSensitive(PathSensitivity.ABSOLUTE)
+    public abstract RegularFileProperty getNativeCompilerPath();
 
     @Input
     public abstract Property<Boolean> getUseMusl();
@@ -80,6 +89,17 @@ public abstract class NativeImageTask extends Exec {
         getBuildStaticImage().convention(false);
         getEnableFallback().convention(false);
         getLinkAtBuildTime().convention(false);
+        Provider<File> nativeComnpilerProvider = project.provider(() -> {
+            String envVar;
+            File compilerPath = null;
+            if(project.hasProperty(NATIVE_COMPILER_PATH_PROPERTY_KEY)) {
+                compilerPath = new File(project.property(NATIVE_COMPILER_PATH_PROPERTY_KEY).toString());
+            } else if((envVar = System.getenv(NATIVE_COMPILER_PATH_ENV_VARIABLE)) != null) {
+                compilerPath = new File(envVar);
+            }
+            return compilerPath;
+        });
+        getNativeCompilerPath().convention(project.getLayout().file(nativeComnpilerProvider));
         ExtensionContainer ext = project.getExtensions();
         JavaApplication javaApplication = ext.findByType(JavaApplication.class);
         if(!Objects.isNull(javaApplication)) {
@@ -123,6 +143,9 @@ public abstract class NativeImageTask extends Exec {
                 }
                 if(getLinkAtBuildTime().get()) {
                     result.add("--link-at-build-time");
+                }
+                if(getNativeCompilerPath().isPresent()) {
+                    result.add("--native-compiler-path=" + getNativeCompilerPath().getAsFile().get());
                 }
                 JavaModuleDetector javaModuleDetector = getJavaModuleDetector();
                 boolean useJpms = getMainModule().isPresent();
