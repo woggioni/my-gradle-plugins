@@ -1,26 +1,32 @@
 package net.woggioni.gradle.graalvm;
 
-import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.Action;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.Nested;
+import org.gradle.jvm.toolchain.JavaToolchainSpec;
 
-abstract public class NativeImageExtension {
-    public abstract Property<FileCollection> getClasspath();
 
-    public abstract DirectoryProperty getGraalVmHome();
+public interface NativeImageExtension {
+    Property<FileCollection> getClasspath();
 
-    public abstract Property<Boolean> getUseMusl();
-    public abstract Property<Boolean> getBuildStaticImage();
-    public abstract Property<Boolean> getEnableFallback();
-    public abstract Property<Boolean> getLinkAtBuildTime();
+    @Nested
+    JavaToolchainSpec getToolchain();
 
-    public abstract Property<String> getMainClass();
+    JavaToolchainSpec toolchain(Action<? super JavaToolchainSpec> action);
 
-    public abstract Property<String> getMainModule();
+    Property<Boolean> getUseMusl();
+    Property<Boolean> getBuildStaticImage();
+    Property<Boolean> getEnableFallback();
+    Property<Boolean> getLinkAtBuildTime();
 
-    public abstract Property<Boolean> getCompressExecutable();
+    Property<String> getMainClass();
 
-    public abstract Property<Boolean> getUseLZMA();
+    Property<String> getMainModule();
 
-    public abstract Property<Integer> getCompressionLevel();
+    Property<Boolean> getCompressExecutable();
+
+    Property<Boolean> getUseLZMA();
+
+    Property<Integer> getCompressionLevel();
 }

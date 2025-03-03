@@ -1,5 +1,6 @@
 package net.woggioni.gradle.graalvm;
 
+import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
@@ -8,10 +9,10 @@ import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
-import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.CacheableTask;
@@ -25,9 +26,9 @@ import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.internal.jvm.JavaModuleDetector;
-import org.gradle.jvm.toolchain.JavaInstallationMetadata;
-import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
+import org.gradle.jvm.toolchain.JavaToolchainSpec;
+import org.gradle.jvm.toolchain.internal.DefaultToolchainSpec;
 import org.gradle.process.CommandLineArgumentProvider;
 
 import javax.inject.Inject;
@@ -37,7 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import static java.util.Optional.ofNullable;
 import static net.woggioni.gradle.graalvm.Constants.GRAALVM_TASK_GROUP;
 
 @CacheableTask
@@ -53,6 +53,14 @@ public abstract class NativeImageTask extends Exec {
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract DirectoryProperty getGraalVmHome();
 
+    private final JavaToolchainSpec toolchain;
+
+    public JavaToolchainSpec toolchain(Action<? super JavaToolchainSpec> action) {
+        action.execute(toolchain);
+        return toolchain;
+    }
+
+    @Optional
     @InputFile
     @PathSensitive(PathSensitivity.ABSOLUTE)
     public abstract RegularFileProperty getNativeCompilerPath();
@@ -81,10 +89,12 @@ public abstract class NativeImageTask extends Exec {
 
     private static final Logger log = Logging.getLogger(NativeImageTask.class);
 
-    public NativeImageTask() {
+    @Inject
+    public NativeImageTask(ObjectFactory objects) {
         Project project = getProject();
         setGroup(GRAALVM_TASK_GROUP);
         setDescription("Create a native image of the application using GraalVM");
+        toolchain = objects.newInstance(DefaultToolchainSpec.class);
         getUseMusl().convention(false);
         getBuildStaticImage().convention(false);
         getEnableFallback().convention(false);
@@ -108,15 +118,16 @@ public abstract class NativeImageTask extends Exec {
         }
         getClasspath().convention(project.files());
         ProjectLayout layout = project.getLayout();
-        JavaToolchainService javaToolchainService = ext.findByType(JavaToolchainService.class);
-        JavaPluginExtension javaPluginExtension = ext.findByType(JavaPluginExtension.class);
-        Provider<Directory> graalHomeDirectoryProvider = ofNullable(javaPluginExtension.getToolchain()).map(javaToolchainSpec ->
-            javaToolchainService.launcherFor(javaToolchainSpec)
-        ).map(javaLauncher ->
-            javaLauncher.map(JavaLauncher::getMetadata).map(JavaInstallationMetadata::getInstallationPath)
-        ).orElseGet(() -> layout.dir(project.provider(() -> project.file(System.getProperty("java.home")))));
-        getGraalVmHome().convention(graalHomeDirectoryProvider);
 
+        JavaToolchainService javaToolchainService = ext.findByType(JavaToolchainService.class);
+        Provider<Directory> graalHomeDirectoryProvider = javaToolchainService.launcherFor(it -> {
+                        it.getLanguageVersion().set(toolchain.getLanguageVersion());
+                        it.getVendor().set(toolchain.getVendor());
+                        it.getImplementation().set(toolchain.getImplementation());
+                    }).map(javaLauncher ->
+                            javaLauncher.getMetadata().getInstallationPath()
+                    ).orElse(layout.dir(project.provider(() -> project.file(System.getProperty("java.home")))));
+        getGraalVmHome().convention(graalHomeDirectoryProvider);
         BasePluginExtension basePluginExtension =
                 ext.getByType(BasePluginExtension.class);
         getOutputFile().convention(basePluginExtension.getLibsDirectory().file(project.getName()));
