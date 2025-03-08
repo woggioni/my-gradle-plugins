@@ -1,5 +1,6 @@
 package net.woggioni.gradle.graalvm;
 
+import org.gradle.api.Action;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.file.DirectoryProperty;
@@ -17,6 +18,8 @@ import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
+import org.gradle.jvm.toolchain.JavaToolchainSpec;
+import org.gradle.jvm.toolchain.internal.DefaultToolchainSpec;
 import org.gradle.process.CommandLineArgumentProvider;
 
 import java.util.ArrayList;
@@ -35,10 +38,18 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
     @OutputDirectory
     public abstract DirectoryProperty getConfigurationDir();
 
+    private final JavaToolchainSpec toolchain;
+
+    public JavaToolchainSpec toolchain(Action<? super JavaToolchainSpec> action) {
+        action.execute(toolchain);
+        return toolchain;
+    }
+
     public NativeImageConfigurationTask() {
         setGroup(GRAALVM_TASK_GROUP);
         setDescription("Run the application with the native-image-agent " +
                 "to create a configuration for native image creation");
+        toolchain = getProject().getObjects().newInstance(DefaultToolchainSpec.class);
         ProjectLayout layout = getProject().getLayout();
         TaskContainer taskContainer = getProject().getTasks();
         JavaApplication javaApplication = getProject().getExtensions().findByType(JavaApplication.class);
@@ -46,8 +57,8 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
         ExtensionContainer ext = getProject().getExtensions();
         Property<JavaLauncher> javaLauncherProperty = getJavaLauncher();
         Optional.ofNullable(ext.findByType(JavaToolchainService.class))
-                .flatMap(ts -> Optional.ofNullable(javaExtension.getToolchain()).map(ts::launcherFor))
-                .ifPresent(javaLauncherProperty::set);
+                .flatMap(ts -> Optional.of(toolchain).map(ts::launcherFor))
+                .ifPresent(javaLauncherProperty::convention);
         if(!Objects.isNull(javaApplication)) {
             getMainClass().convention(javaApplication.getMainClass());
             getMainModule().convention(javaApplication.getMainModule());

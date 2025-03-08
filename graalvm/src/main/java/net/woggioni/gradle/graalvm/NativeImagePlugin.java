@@ -74,8 +74,16 @@ public class NativeImagePlugin implements Plugin<Project> {
                 configurations.getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME));
         nativeImageExtension.getClasspath().convention(classpath);
 
-        Provider<NativeImageConfigurationTask> nativeImageConfigurationTaskProvider =
-                tasks.register(CONFIGURE_NATIVE_IMAGE_TASK_NAME, NativeImageConfigurationTask.class);
+        Provider<NativeImageConfigurationTask> nativeImageConfigurationTaskProvider = tasks.register(
+                CONFIGURE_NATIVE_IMAGE_TASK_NAME,
+                NativeImageConfigurationTask.class,
+                nativeImageConfigurationTask -> {
+                    nativeImageConfigurationTask.toolchain(jts -> {
+                        jts.getImplementation().convention(nativeImageExtension.getToolchain().getImplementation());
+                        jts.getVendor().convention(nativeImageExtension.getToolchain().getVendor());
+                        jts.getLanguageVersion().convention(nativeImageExtension.getToolchain().getLanguageVersion());
+                    });
+                });
 
         Provider<NativeImageTask> nativeImageTaskProvider = tasks.register(NATIVE_IMAGE_TASK_NAME, NativeImageTask.class, nativeImageTask -> {
             nativeImageTask.getClasspath().set(nativeImageExtension.getClasspath());
