@@ -27,9 +27,6 @@ public class JlinkPlugin implements Plugin<Project> {
         project.getPluginManager().apply(JavaLibraryPlugin.class);
         ExtensionContainer extensionContainer = project.getExtensions();
         BasePluginExtension basePluginExtension = extensionContainer.getByType(BasePluginExtension.class);
-        JavaApplication javaApplicationExtension =
-            Optional.ofNullable(extensionContainer.findByType(JavaApplication.class))
-                .orElseGet(() -> extensionContainer.create("application", JavaApplication.class));
 
         TaskContainer tasks = project.getTasks();
         Provider<JlinkTask> jlinTaskProvider = tasks.register(JLINK_TASK_NAME, JlinkTask.class, jlinkTask -> {

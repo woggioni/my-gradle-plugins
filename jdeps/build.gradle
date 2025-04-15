@@ -1,0 +1,13 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+
+gradlePlugin {
+    plugins {
+        create("JdepsPlugin") {
+            id = 'net.woggioni.gradle.jdeps'
+            implementationClass = "net.woggioni.gradle.jdeps.JdepsPlugin"
+        }
+    }
+}
