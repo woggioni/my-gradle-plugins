@@ -49,7 +49,7 @@ subprojects { subproject ->
         add("testImplementation", catalog.junit.jupiter.api)
         add("testImplementation", catalog.junit.jupiter.params)
         add("testRuntimeOnly", catalog.junit.jupiter.engine)
-        add("testRuntimeOnly", catalog.junit.platform.launcher)
+//        add("testRuntimeOnly", catalog.junit.platform.launcher)
         add("testImplementation", gradleTestKit())
     }
 

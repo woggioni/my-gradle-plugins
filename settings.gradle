@@ -10,6 +10,7 @@ dependencyResolutionManagement {
     versionCatalogs {
         catalog {
             from group: 'com.lys', name: 'lys-catalog', version: getProperty('lys.catalog.version')
+            version('junit.jupiter', '5.9.3')
         }
     }
 }
