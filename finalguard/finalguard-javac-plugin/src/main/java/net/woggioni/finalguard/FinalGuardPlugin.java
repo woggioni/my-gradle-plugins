@@ -104,7 +104,13 @@ public class FinalGuardPlugin implements Plugin {
         }
     }
 
+    private static boolean isJava17OrHigher() {
+        return System.getProperty("java.version").compareTo("17") >= 0;
+    }
+
     private static final Configuration configuration = new Configuration();
+
+    private static final boolean isJava17OrHigher = isJava17OrHigher();
 
     @Override
     public String getName() {
@@ -140,7 +146,6 @@ public class FinalGuardPlugin implements Plugin {
         private final Trees trees;
         private final Map<String, VariableInfo> variableInfoMap = new LinkedHashMap<>();
         private final Set<String> reassignedVariables = new HashSet<>();
-        private String currentMethod;
 
         public FinalVariableAnalyzer(CompilationUnitTree compilationUnit, JavacTask task) {
             this.compilationUnit = compilationUnit;
@@ -149,50 +154,45 @@ public class FinalGuardPlugin implements Plugin {
 
         @Override
         public Void visitMethod(MethodTree node, Void p) {
-            final String previousMethod = currentMethod;
-            currentMethod = node.getName().toString();
             variableInfoMap.clear();
             reassignedVariables.clear();
 
-            // Analyze parameters first
-            for (VariableTree param : node.getParameters()) {
-                final String varName = param.getName().toString();
-                variableInfoMap.put(varName, new VariableInfo(param, VariableType.METHOD_PARAM));
-            }
-
-            // Then analyze method body
             super.visitMethod(node, p);
 
             // Check for variables that could be final
             checkForFinalCandidates();
-
-            currentMethod = previousMethod;
             return null;
         }
 
         @Override
         public Void visitVariable(VariableTree node, Void p) {
-            if (currentMethod != null) {
-                final String varName = node.getName().toString();
-                final Tree parent = getCurrentPath().getParentPath().getLeaf();
-                final VariableType type;
-                if (parent instanceof LambdaExpressionTree) {
-                    type = VariableType.LAMBDA_PARAM;
-                } else if (parent instanceof ForLoopTree || parent instanceof EnhancedForLoopTree) {
-                    type = VariableType.LOOP_PARAM;
-                } else if (parent instanceof CatchTree) {
-                    type = VariableType.CATCH_PARAM;
-                } else if (parent instanceof TryTree) {
-                    type = VariableType.TRY_WITH_PARAM;
-                } else if (parent instanceof MethodTree) {
-                    type = VariableType.METHOD_PARAM;
-                } else if (parent instanceof BlockTree) {
-                    type = VariableType.LOCAL_VAR;
-                } else {
-                    type = VariableType.LOCAL_VAR;
+            final String varName = node.getName().toString();
+            final TreePath currentPath = getCurrentPath();
+            final TreePath parentPath = currentPath.getParentPath();
+            final Tree parent = parentPath.getLeaf();
+            final VariableType type;
+            if (parent instanceof LambdaExpressionTree) {
+                type = VariableType.LAMBDA_PARAM;
+            } else if (parent instanceof ForLoopTree || parent instanceof EnhancedForLoopTree) {
+                type = VariableType.LOOP_PARAM;
+            } else if (parent instanceof CatchTree) {
+                type = VariableType.CATCH_PARAM;
+            } else if (parent instanceof TryTree) {
+                type = VariableType.TRY_WITH_PARAM;
+            } else if (parent instanceof MethodTree) {
+                type = VariableType.METHOD_PARAM;
+                if(isJava17OrHigher && ((MethodTree) parent).getName().contentEquals("<init>")) {
+                    final TreePath grandParentPath = parentPath.getParentPath();
+                    if(grandParentPath.getLeaf().getKind() == Tree.Kind.RECORD) {
+                        return super.visitVariable(node, p);
+                    }
                 }
-                variableInfoMap.put(varName, new VariableInfo(node, type));
+            } else if (parent instanceof BlockTree) {
+                type = VariableType.LOCAL_VAR;
+            } else {
+                type = VariableType.LOCAL_VAR;
             }
+            variableInfoMap.put(varName, new VariableInfo(node, type));
             return super.visitVariable(node, p);
         }
 

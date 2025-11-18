@@ -165,7 +165,8 @@ public class PluginTest {
                             LOCAL_VAR.getMessage("result"),
                             LOCAL_VAR.getMessage("size"),
                             METHOD_PARAM.getMessage("t1s")
-                    ))
+                    )),
+                    Arguments.of(prefix + "TestCase12.java", Collections.emptyList())
             );
         }
     }
