@@ -1,0 +1,12 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+gradlePlugin {
+    plugins {
+        create("FinalGuardPlugin") {
+            id = 'net.woggioni.gradle.finalguard'
+            implementationClass = "net.woggioni.gradle.finalguard.FinalGuardPlugin"
+        }
+    }
+}

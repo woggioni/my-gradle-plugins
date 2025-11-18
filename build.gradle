@@ -11,15 +11,25 @@ subprojects { subproject ->
         }
     }
 
+    tasks.named(JavaPlugin.JAR_TASK_NAME, Jar.class, {
+        manifest {
+            attributes.put(java.util.jar.Attributes.Name.SPECIFICATION_TITLE.toString(), subproject.getName());
+            attributes.put(java.util.jar.Attributes.Name.SPECIFICATION_VERSION.toString(), subproject.getVersion());
+        }
+    })
+
     int javaVersion
     if(subproject.path == ':osgi-app' || subproject.path == ':multi-release-jar') {
         javaVersion = 11
     } else {
         javaVersion = 8
     }
-    tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
-        options.release = javaVersion
-        options.compilerArgs << '-parameters'
+
+    if(subproject.path != ':finalguard:finalguard-javac-plugin') {
+        tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile) {
+            options.release = javaVersion
+            options.compilerArgs << '-parameters'
+        }
     }
 
     pluginManager.withPlugin('groovy') {
@@ -37,7 +47,9 @@ subprojects { subproject ->
             add(conf, [group: "org.projectlombok", name: "lombok", version: catalog.versions.lombok.get()])
         }
         add("testImplementation", catalog.junit.jupiter.api)
+        add("testImplementation", catalog.junit.jupiter.params)
         add("testRuntimeOnly", catalog.junit.jupiter.engine)
+        add("testRuntimeOnly", catalog.junit.platform.launcher)
         add("testImplementation", gradleTestKit())
     }
 
@@ -63,7 +75,6 @@ subprojects { subproject ->
         }
     }
 }
-
 
 wrapper {
     gradleVersion = getProperty("version.gradle")

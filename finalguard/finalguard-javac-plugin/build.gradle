@@ -1,0 +1,38 @@
+plugins {
+    id 'java-library'
+}
+
+group = "net.woggioni.finalguard"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+java {
+    sourceCompatibility(JavaVersion.VERSION_1_8.toString())
+    targetCompatibility(JavaVersion.VERSION_1_8.toString())
+    modularity.inferModulePath = false
+}
+
+tasks.named(org.gradle.api.plugins.JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile.class) {
+    options.compilerArgs << '-parameters'
+}
+
+test {
+    def testCompilationClassPath = sourceSets["main"].output.classesDirs.files +
+            sourceSets["main"].runtimeClasspath.files +
+            sourceSets["test"].resources.srcDirs
+    systemProperty("test.compilation.classpath",
+            String.join(File.pathSeparator, testCompilationClassPath.collect {it.toString() }))
+}
+
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from(components["java"])
+        }
+    }
+}
