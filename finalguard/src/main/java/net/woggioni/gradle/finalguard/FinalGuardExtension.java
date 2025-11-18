@@ -6,5 +6,17 @@ import javax.tools.Diagnostic;
 
 
 public interface FinalGuardExtension {
-    Property<Diagnostic.Kind> getDiagnosticKind();
+    Property<Diagnostic.Kind> getDefaultLevel();
+
+    Property<Diagnostic.Kind> getLocalVariableLevel();
+
+    Property<Diagnostic.Kind> getLambdaParameterLevel();
+
+    Property<Diagnostic.Kind> getForLoopParameterLevel();
+
+    Property<Diagnostic.Kind> getTryWithResourceLevel();
+
+    Property<Diagnostic.Kind> getMethodParameterLevel();
+
+    Property<Diagnostic.Kind> getCatchParameterLevel();
 }

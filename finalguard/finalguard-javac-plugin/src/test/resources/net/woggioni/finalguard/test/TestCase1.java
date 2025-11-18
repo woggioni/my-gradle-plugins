@@ -1,4 +1,10 @@
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.function.Function;
 
 public class TestCase1 {
 
@@ -9,7 +15,7 @@ public class TestCase1 {
 
         param2 = "modified";  // No warning for param2 (reassigned)
 
-        for (int i = 0; i < 10; i++) {  // Warning: i could be final
+        for (int i = 0; i < 10; ) {  // Warning: i could be final
             String loopVar = "constant";  // Warning: loopVar could be final
         }
 
@@ -17,6 +23,14 @@ public class TestCase1 {
         for (String item : Arrays.asList("a", "b")) {
             // item is effectively final in each iteration
         }
+
+        try (InputStream is = Files.newInputStream(Path.of("/tmp/file.txt"))) {
+
+        } catch (IOException ioe) {
+            throw new UncheckedIOException(ioe);
+        }
+
+        Function<String, String> f = s -> s.toLowerCase();
     }
 
     public void finalMethod(final String param1, String param2) {  // Warning only for param2

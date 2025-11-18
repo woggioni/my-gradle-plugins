@@ -1,7 +1,6 @@
 package net.woggioni.finalguard;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -30,10 +29,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.CATCH_PARAM;
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LAMBDA_PARAM;
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LOCAL_VAR;
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LOOP_PARAM;
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.METHOD_PARAM;
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.TRY_WITH_PARAM;
 
 public class PluginTest {
 
@@ -67,7 +72,7 @@ public class PluginTest {
             char[] buffer = new char[0x1000];
             while (true) {
                 int read = r.read(buffer);
-                if(read < 0) break;
+                if (read < 0) break;
                 sb.append(buffer, 0, read);
             }
             return sb.toString();
@@ -106,7 +111,7 @@ public class PluginTest {
                 .map(SourceFile::new).collect(Collectors.toList());
         List<String> arguments = Arrays.asList(
                 "-classpath", System.getProperty("test.compilation.classpath"),
-                "-Xplugin:" + FinalGuardPlugin.class.getSimpleName()
+                "-Xplugin:" + FinalGuardPlugin.class.getName()
         );
         final ArrayList<Diagnostic<? extends JavaFileObject>> compilerMessages = new ArrayList<>();
         System.setProperty(FinalGuardPlugin.DIAGNOSTIC_LEVEL_KEY, "ERROR");
@@ -118,7 +123,7 @@ public class PluginTest {
                 null,
                 compilationUnits
         );
-        if(task.call()) return Optional.empty();
+        if (task.call()) return Optional.empty();
         else return Optional.of(compilerMessages);
     }
 
@@ -131,22 +136,43 @@ public class PluginTest {
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             String prefix = "net/woggioni/finalguard/test/";
             return Stream.of(
-                    Arguments.of(prefix + "TestCase1.java", CompilationResult.FAILURE),
-                    Arguments.of(prefix + "TestCase2.java", CompilationResult.SUCCESS),
-                    Arguments.of(prefix + "TestCase3.java", CompilationResult.FAILURE),
-                    Arguments.of(prefix + "TestCase4.java", CompilationResult.FAILURE),
-                    Arguments.of(prefix + "TestCase5.java", CompilationResult.FAILURE),
-                    Arguments.of(prefix + "TestCase6.java", CompilationResult.FAILURE),
-                    Arguments.of(prefix + "TestCase7.java", CompilationResult.FAILURE),
-                    Arguments.of(prefix + "TestCase8.java", CompilationResult.FAILURE)
+                    Arguments.of(prefix + "TestCase1.java", Arrays.asList(
+                            LOOP_PARAM.getMessage("item"),
+                            LAMBDA_PARAM.getMessage("s"),
+                            LOCAL_VAR.getMessage("f"),
+                            LOCAL_VAR.getMessage("localVar"),
+                            LOCAL_VAR.getMessage("loopVar"),
+                            LOOP_PARAM.getMessage("i"),
+                            TRY_WITH_PARAM.getMessage("is"),
+                            METHOD_PARAM.getMessage("param1"),
+                            CATCH_PARAM.getMessage("ioe"),
+                            LOCAL_VAR.getMessage("anotherVar"),
+                            METHOD_PARAM.getMessage("param2")
+                    )),
+                    Arguments.of(prefix + "TestCase2.java", Collections.emptyList()),
+                    Arguments.of(prefix + "TestCase3.java",
+                            Arrays.asList(LOCAL_VAR.getMessage("n"))),
+                    Arguments.of(prefix + "TestCase4.java",
+                            Arrays.asList(LOOP_PARAM.getMessage("i"))),
+                    Arguments.of(prefix + "TestCase5.java", Arrays.asList(LOCAL_VAR.getMessage("loopVar"))),
+                    Arguments.of(prefix + "TestCase6.java", Arrays.asList(LOOP_PARAM.getMessage("item"))),
+                    Arguments.of(prefix + "TestCase7.java", Arrays.asList(CATCH_PARAM.getMessage("re"))),
+                    Arguments.of(prefix + "TestCase8.java", Arrays.asList(TRY_WITH_PARAM.getMessage("is"))),
+                    Arguments.of(prefix + "TestCase9.java", Arrays.asList(LAMBDA_PARAM.getMessage("s"))),
+                    Arguments.of(prefix + "TestCase10.java", Arrays.asList(METHOD_PARAM.getMessage("n"))),
+                    Arguments.of(prefix + "TestCase11.java", Arrays.asList(
+                            METHOD_PARAM.getMessage("n"),
+                            LOCAL_VAR.getMessage("result"),
+                            LOCAL_VAR.getMessage("size"),
+                            METHOD_PARAM.getMessage("t1s")
+                    ))
             );
         }
     }
 
-    @Disabled
-    @ParameterizedTest(name="{0}")
+    @ParameterizedTest(name = "{0}")
     @ArgumentsSource(TestCaseProvider.class)
-    public void test(String sourceFilePath, CompilationResult expectedCompilationResult) {
+    public void test(String sourceFilePath, List<String> expectedErrorMessages) {
         Optional<Iterable<Diagnostic<? extends JavaFileObject>>> result;
         try {
             ClassLoader cl = getClass().getClassLoader();
@@ -155,29 +181,27 @@ public class PluginTest {
             throw new RuntimeException(e);
         }
         result.ifPresent(diagnostics -> {
-            for(Diagnostic<? extends JavaFileObject> diagnostic : diagnostics) {
+            for (Diagnostic<? extends JavaFileObject> diagnostic : diagnostics) {
                 System.err.printf("%s:%s %s\n",
                         diagnostic.getSource().getName(),
                         diagnostic.getLineNumber(),
                         diagnostic.getMessage(Locale.getDefault()));
             }
         });
-        final Pattern errorMessage = Pattern.compile(
-                "Local variable '[a-zA-Z0-9_]+' is never reassigned, so it should be declared final");
-        switch (expectedCompilationResult) {
-            case SUCCESS:
-                Assertions.assertFalse(result.isPresent(), "Compilation was expected to succeed but it has failed");
-                break;
-            case FAILURE:
-                Assertions.assertTrue(result.isPresent(), "Compilation was expected to fail but it succeeded");
-
-                Optional<Diagnostic<? extends JavaFileObject>> illegalSuspendableInvocationMessage = StreamSupport.stream(
-                                result.get().spliterator(), false)
-                        .filter( diagnostic ->
-                                errorMessage.matcher(diagnostic.getMessage(Locale.ENGLISH)).matches()
-                        ).findFirst();
-                Assertions.assertTrue(illegalSuspendableInvocationMessage.isPresent());
-                break;
+        if (expectedErrorMessages.isEmpty()) {
+            Assertions.assertFalse(result.isPresent(), "Compilation was expected to succeed but it has failed");
+        } else {
+            final List<String> compilationErrors = result
+                    .map(it -> StreamSupport.stream(it.spliterator(), false))
+                    .orElse(Stream.empty())
+                    .map(it -> it.getMessage(Locale.ENGLISH))
+                    .collect(Collectors.toList());
+            for (String expectedErrorMessage : expectedErrorMessages) {
+                int index = compilationErrors.indexOf(expectedErrorMessage);
+                Assertions.assertTrue(index >= 0, String.format("Expected compilation error `%s` not found in output", expectedErrorMessage));
+                compilationErrors.remove(index);
+            }
+            Assertions.assertTrue(compilationErrors.isEmpty(), "Unexpected compilation errors found in the output");
         }
     }
 }
