@@ -82,6 +82,13 @@ public class FinalGuardPlugin implements Plugin<Project> {
                     }
                 }
                 {
+                    final Property<Diagnostic.Kind> abstractMethodParameterLevel = finalGuardExtension.getAbstractMethodParameterLevel();
+                    if (abstractMethodParameterLevel.isPresent()) {
+                        final Diagnostic.Kind diagnosticKind = abstractMethodParameterLevel.get();
+                        setProperty.accept("abstract.method.param.level", diagnosticKind);
+                    }
+                }
+                {
                     final Property<Diagnostic.Kind> forLoopParameterLevel = finalGuardExtension.getForLoopParameterLevel();
                     if (forLoopParameterLevel.isPresent()) {
                         final Diagnostic.Kind diagnosticKind = forLoopParameterLevel.get();

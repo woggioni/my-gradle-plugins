@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.ABSTRACT_METHOD_PARAM;
 import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.CATCH_PARAM;
 import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LAMBDA_PARAM;
 import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LOCAL_VAR;
@@ -161,12 +162,14 @@ public class PluginTest {
                     Arguments.of(prefix + "TestCase9.java", Arrays.asList(LAMBDA_PARAM.getMessage("s"))),
                     Arguments.of(prefix + "TestCase10.java", Arrays.asList(METHOD_PARAM.getMessage("n"))),
                     Arguments.of(prefix + "TestCase11.java", Arrays.asList(
-                            METHOD_PARAM.getMessage("n"),
+                            ABSTRACT_METHOD_PARAM.getMessage("n"),
                             LOCAL_VAR.getMessage("result"),
                             LOCAL_VAR.getMessage("size"),
                             METHOD_PARAM.getMessage("t1s")
                     )),
-                    Arguments.of(prefix + "TestCase12.java", Collections.emptyList())
+                    Arguments.of(prefix + "TestCase12.java", Collections.emptyList()),
+                    Arguments.of(prefix + "TestCase13.java", Arrays.asList(ABSTRACT_METHOD_PARAM.getMessage("x"), ABSTRACT_METHOD_PARAM.getMessage("y"))),
+                    Arguments.of(prefix + "TestCase14.java", Arrays.asList(ABSTRACT_METHOD_PARAM.getMessage("x"), ABSTRACT_METHOD_PARAM.getMessage("y")))
             );
         }
     }

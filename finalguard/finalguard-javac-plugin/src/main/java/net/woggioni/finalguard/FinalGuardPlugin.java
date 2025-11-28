@@ -21,9 +21,9 @@ import com.sun.source.util.TaskListener;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.Trees;
-
 import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.ExecutableElement;
 import javax.tools.Diagnostic;
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -36,8 +36,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FinalGuardPlugin implements Plugin {
-
     public static final String DIAGNOSTIC_LEVEL_KEY = "net.woggioni.finalguard.diagnostic.level";
+    public static final String IGNORE_ABSTRACT_METHOD_PARAMS_KEY = "net.woggioni.finalguard.ignore.abstract.method.params";
 
     enum VariableType {
         LOCAL_VAR("net.woggioni.finalguard.diagnostic.local.variable.level"),
@@ -45,7 +45,8 @@ public class FinalGuardPlugin implements Plugin {
         LOOP_PARAM("net.woggioni.finalguard.diagnostic.for.param.level"),
         TRY_WITH_PARAM("net.woggioni.finalguard.diagnostic.try.param.level"),
         CATCH_PARAM("net.woggioni.finalguard.diagnostic.catch.param.level"),
-        LAMBDA_PARAM("net.woggioni.finalguard.diagnostic.lambda.param.level");
+        LAMBDA_PARAM("net.woggioni.finalguard.diagnostic.lambda.param.level"),
+        ABSTRACT_METHOD_PARAM("net.woggioni.finalguard.diagnostic.abstract.method.param.level");
 
         private final String propertyKey;
 
@@ -71,6 +72,8 @@ public class FinalGuardPlugin implements Plugin {
                     return "Catch parameter '" + variableName + "' is never reassigned, so it should be declared final";
                 case LAMBDA_PARAM:
                     return "Lambda parameter '" + variableName + "' is never reassigned, so it should be declared final";
+                case ABSTRACT_METHOD_PARAM:
+                    return "Abstract method parameter '" + variableName + "' is never reassigned, so it should be declared final";
                 default:
                     throw new UnsupportedOperationException();
             }
@@ -80,7 +83,6 @@ public class FinalGuardPlugin implements Plugin {
     private static class VariableInfo {
         final VariableTree variableTree;
         final VariableType variableType;
-
         VariableInfo(VariableTree variableTree, VariableType variableType) {
             this.variableTree = variableTree;
             this.variableType = variableType;
@@ -109,7 +111,6 @@ public class FinalGuardPlugin implements Plugin {
     }
 
     private static final Configuration configuration = new Configuration();
-
     private static final boolean isJava17OrHigher = isJava17OrHigher();
 
     @Override
@@ -156,9 +157,7 @@ public class FinalGuardPlugin implements Plugin {
         public Void visitMethod(MethodTree node, Void p) {
             variableInfoMap.clear();
             reassignedVariables.clear();
-
             super.visitMethod(node, p);
-
             // Check for variables that could be final
             checkForFinalCandidates();
             return null;
@@ -171,6 +170,7 @@ public class FinalGuardPlugin implements Plugin {
             final TreePath parentPath = currentPath.getParentPath();
             final Tree parent = parentPath.getLeaf();
             final VariableType type;
+
             if (parent instanceof LambdaExpressionTree) {
                 type = VariableType.LAMBDA_PARAM;
             } else if (parent instanceof ForLoopTree || parent instanceof EnhancedForLoopTree) {
@@ -180,11 +180,15 @@ public class FinalGuardPlugin implements Plugin {
             } else if (parent instanceof TryTree) {
                 type = VariableType.TRY_WITH_PARAM;
             } else if (parent instanceof MethodTree) {
-                type = VariableType.METHOD_PARAM;
-                if(isJava17OrHigher && ((MethodTree) parent).getName().contentEquals("<init>")) {
-                    final TreePath grandParentPath = parentPath.getParentPath();
-                    if(grandParentPath.getLeaf().getKind() == Tree.Kind.RECORD) {
-                        return super.visitVariable(node, p);
+                if (isAbstractMethodParameter(node, (MethodTree) parent)) {
+                    type = VariableType.ABSTRACT_METHOD_PARAM;
+                } else {
+                    type = VariableType.METHOD_PARAM;
+                    if (isJava17OrHigher && ((MethodTree) parent).getName().contentEquals("<init>")) {
+                        final TreePath grandParentPath = parentPath.getParentPath();
+                        if (grandParentPath.getLeaf().getKind() == Tree.Kind.RECORD) {
+                            return super.visitVariable(node, p);
+                        }
                     }
                 }
             } else if (parent instanceof BlockTree) {
@@ -192,8 +196,19 @@ public class FinalGuardPlugin implements Plugin {
             } else {
                 type = VariableType.LOCAL_VAR;
             }
+
             variableInfoMap.put(varName, new VariableInfo(node, type));
             return super.visitVariable(node, p);
+        }
+
+        private boolean isAbstractMethodParameter(VariableTree variableTree, MethodTree methodTree) {
+            // Get the element for the method
+            Element methodElement = trees.getElement(getCurrentPath().getParentPath());
+            if (methodElement instanceof ExecutableElement) {
+                ExecutableElement executableElement = (ExecutableElement) methodElement;
+                return executableElement.getModifiers().contains(Modifier.ABSTRACT);
+            }
+            return false;
         }
 
         @Override
@@ -212,8 +227,7 @@ public class FinalGuardPlugin implements Plugin {
                     node.getKind() == Tree.Kind.POSTFIX_INCREMENT ||
                     node.getKind() == Tree.Kind.POSTFIX_DECREMENT) &&
                     node.getExpression() instanceof IdentifierTree) {
-
-                final IdentifierTree ident = (IdentifierTree) node.getExpression();
+                IdentifierTree ident = (IdentifierTree) node.getExpression();
                 reassignedVariables.add(ident.getName().toString());
             }
             return super.visitUnary(node, p);
@@ -232,23 +246,19 @@ public class FinalGuardPlugin implements Plugin {
             for (final Map.Entry<String, VariableInfo> entry : variableInfoMap.entrySet()) {
                 final String varName = entry.getKey();
                 final VariableInfo info = entry.getValue();
-
                 Diagnostic.Kind level = configuration.levels.get(info.variableType);
                 // Skip if level is not configured
                 if (level == null) {
                     continue;
                 }
-
                 // Skip if already final
                 if (isFinal(info.variableTree)) {
                     continue;
                 }
-
                 // Skip if reassigned
                 if (reassignedVariables.contains(varName)) {
                     continue;
                 }
-
                 trees.printMessage(level,
                         info.variableType.getMessage(varName),
                         info.variableTree,

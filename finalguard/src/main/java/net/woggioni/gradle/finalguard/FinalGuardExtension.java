@@ -18,5 +18,7 @@ public interface FinalGuardExtension {
 
     Property<Diagnostic.Kind> getMethodParameterLevel();
 
+    Property<Diagnostic.Kind> getAbstractMethodParameterLevel();
+
     Property<Diagnostic.Kind> getCatchParameterLevel();
 }
