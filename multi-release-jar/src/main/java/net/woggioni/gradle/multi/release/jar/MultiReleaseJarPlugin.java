@@ -10,7 +10,6 @@ import org.gradle.api.attributes.LibraryElements;
 import org.gradle.api.attributes.java.TargetJvmVersion;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.SourceDirectorySet;
-import org.gradle.api.internal.plugins.DslObject;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.MapProperty;
@@ -167,7 +166,6 @@ public class MultiReleaseJarPlugin implements Plugin<Project> {
                             "classes/" + mainSourceSet.getName() + "/" + sourceDirectorySet.getName())
                     );
                     sourcePaths.add(sourceDirectorySet.getSourceDirectories());
-                    new DslObject(mainSourceSet).getConvention().getPlugins().put(sourceDirectorySet.getName(), sourceDirectorySet);
                     mainSourceSet.getExtensions().add(SourceDirectorySet.class, sourceDirectorySet.getName(), sourceDirectorySet);
                     TaskProvider<JavaCompile> compileTask =
                         project.getTasks().register(JavaPlugin.COMPILE_JAVA_TASK_NAME + javaVersion.getMajorVersion(), JavaCompile.class,

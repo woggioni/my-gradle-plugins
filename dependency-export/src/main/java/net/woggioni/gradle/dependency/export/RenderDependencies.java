@@ -7,7 +7,7 @@ import org.gradle.api.GradleException;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
-import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.CacheableTask;
@@ -59,8 +59,6 @@ public class RenderDependencies extends DefaultTask {
         return outputFile.map(RegularFile::getAsFile);
     }
 
-    private final JavaPluginConvention javaPluginConvention;
-
     @Option(option = "output", description = "Set the output file name")
     public void setOutputCli(String outputFile) {
         Provider<File> fileProvider = getProject().provider(() -> new File(outputFile));
@@ -81,12 +79,11 @@ public class RenderDependencies extends DefaultTask {
     public RenderDependencies(ObjectFactory objects) {
         setGroup(DEPENDENCY_EXPORT_GROUP);
         sourceFile = objects.property(File.class);
-        javaPluginConvention = getProject().getConvention().getPlugin(JavaPluginConvention.class);
         format = objects.property(String.class).convention("xlib");
         graphvizExecutable = objects.property(String.class).convention("dot");
-        Provider<File> defaultOutputFileProvider =
-                getProject().provider(() -> new File(javaPluginConvention.getDocsDir(), "renderedDependencies"));
-        outputFile = objects.fileProperty().convention(getProject().getLayout().file(defaultOutputFileProvider)
+        final JavaPluginExtension javaPluginExtension = getProject().getExtensions().findByType(JavaPluginExtension.class);
+        final Provider<RegularFile> defaultOutputFileProvider = javaPluginExtension.getDocsDir().file("renderedDependencies");
+        outputFile = objects.fileProperty().convention(defaultOutputFileProvider
                 .zip(format, (file, type) -> Objects.equals("xlib", type) ? null : file));
         getOutputs().upToDateWhen(t -> outputFile.isPresent());
     }

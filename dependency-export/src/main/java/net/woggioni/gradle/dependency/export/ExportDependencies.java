@@ -20,8 +20,10 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.JavaPluginConvention;
+import org.gradle.api.plugins.JavaPluginExtension;
+import org.gradle.api.plugins.ReportingBasePlugin;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Classpath;
@@ -74,8 +76,6 @@ public class ExportDependencies extends DefaultTask {
     @Getter(onMethod_ = { @Input })
     private final Property<Boolean> showArtifacts;
 
-    private final JavaPluginConvention javaPluginConvention;
-
     @InputFiles
     @Classpath
     public Provider<FileCollection> getConfigurationFiles() {
@@ -101,11 +101,10 @@ public class ExportDependencies extends DefaultTask {
     @Inject
     public ExportDependencies(ObjectFactory objects) {
         setGroup(DEPENDENCY_EXPORT_GROUP);
-        javaPluginConvention = getProject().getConvention().getPlugin(JavaPluginConvention.class);
         configurationName = objects.property(String.class).convention(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME);
-        Provider<File> defaultOutputFileProvider =
-                getProject().provider(() -> new File(javaPluginConvention.getDocsDir(), "dependencies.dot"));
-        outputFile = objects.fileProperty().convention(getProject().getLayout().file(defaultOutputFileProvider));
+        final JavaPluginExtension javaPluginExtension = getProject().getExtensions().findByType(JavaPluginExtension.class);
+        final Provider<RegularFile> defaultOutputFileProvider = javaPluginExtension.getDocsDir().file("dependencies.dot");
+        outputFile = objects.fileProperty().convention(defaultOutputFileProvider);
         showArtifacts = objects.property(Boolean.class).convention(false);
     }
 
