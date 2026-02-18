@@ -15,13 +15,12 @@ import org.gradle.api.tasks.compile.JavaCompile;
 
 import javax.tools.Diagnostic;
 import java.net.URL;
-import java.util.function.BiConsumer;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 public class FinalGuardPlugin implements Plugin<Project> {
     private static final String FINALGUARD_PLUGIN_CONFIGURATION = "finalguard_plugin";
-    private static final String PROPERTY_PREFIX = "net.woggioni.finalguard.diagnostic.";
+    private static final String JAVAC_PLUGIN_NAME = "net.woggioni.finalguard.FinalGuardPlugin";
 
     @Override
     public void apply(final Project project) {
@@ -54,70 +53,23 @@ public class FinalGuardPlugin implements Plugin<Project> {
         tasks.withType(JavaCompile.class, javaCompileTask -> {
             javaCompileTask.doFirst(t -> {
                 final CompileOptions options = javaCompileTask.getOptions();
-                final BiConsumer<String, Diagnostic.Kind> setProperty = (key, diagnosticKind) -> {
-                    final String propertyKey = PROPERTY_PREFIX + key;
-                    System.setProperty(propertyKey, diagnosticKind.toString());
-                    options.getForkOptions().getJvmArgs().add(String.format("-D%s=%s", propertyKey, diagnosticKind));
-                };
-                options.setAnnotationProcessorPath(options.getAnnotationProcessorPath().plus(javacPluginConfiguration));
-                {
-                    final Property<Diagnostic.Kind> defaultLevel = finalGuardExtension.getDefaultLevel();
-                    if (defaultLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = defaultLevel.get();
-                        setProperty.accept("level", diagnosticKind);
-                    }
-                }
-                {
-                    final Property<Diagnostic.Kind> localVariableLevel = finalGuardExtension.getLocalVariableLevel();
-                    if (localVariableLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = localVariableLevel.get();
-                        setProperty.accept("local.variable.level", diagnosticKind);
-                    }
-                }
-                {
-                    final Property<Diagnostic.Kind> methodParameterLevel = finalGuardExtension.getMethodParameterLevel();
-                    if (methodParameterLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = methodParameterLevel.get();
-                        setProperty.accept("method.param.level", diagnosticKind);
-                    }
-                }
-                {
-                    final Property<Diagnostic.Kind> abstractMethodParameterLevel = finalGuardExtension.getAbstractMethodParameterLevel();
-                    if (abstractMethodParameterLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = abstractMethodParameterLevel.get();
-                        setProperty.accept("abstract.method.param.level", diagnosticKind);
-                    }
-                }
-                {
-                    final Property<Diagnostic.Kind> forLoopParameterLevel = finalGuardExtension.getForLoopParameterLevel();
-                    if (forLoopParameterLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = forLoopParameterLevel.get();
-                        setProperty.accept("for.param.level", diagnosticKind);
-                    }
-                }
-                {
-                    final Property<Diagnostic.Kind> tryParameterLevel = finalGuardExtension.getTryWithResourceLevel();
-                    if (tryParameterLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = tryParameterLevel.get();
-                        setProperty.accept("try.param.level", diagnosticKind);
-                    }
-                }
-                {
-                    final Property<Diagnostic.Kind> catchParameterLevel = finalGuardExtension.getCatchParameterLevel();
-                    if (catchParameterLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = catchParameterLevel.get();
-                        setProperty.accept("catch.param.level", diagnosticKind);
-                    }
-                }
-                {
-                    final Property<Diagnostic.Kind> lambdaParameterLevel = finalGuardExtension.getLambdaParameterLevel();
-                    if (lambdaParameterLevel.isPresent()) {
-                        final Diagnostic.Kind diagnosticKind = lambdaParameterLevel.get();
-                        setProperty.accept("lambda.param.level", diagnosticKind);
-                    }
-                }
-                options.getCompilerArgs().add("-Xplugin:net.woggioni.finalguard.FinalGuardPlugin");
+                final StringBuilder xpluginArg = new StringBuilder("-Xplugin:").append(JAVAC_PLUGIN_NAME);
+                appendOption(xpluginArg, "default.level", finalGuardExtension.getDefaultLevel());
+                appendOption(xpluginArg, "local.variable.level", finalGuardExtension.getLocalVariableLevel());
+                appendOption(xpluginArg, "method.param.level", finalGuardExtension.getMethodParameterLevel());
+                appendOption(xpluginArg, "abstract.method.param.level", finalGuardExtension.getAbstractMethodParameterLevel());
+                appendOption(xpluginArg, "for.param.level", finalGuardExtension.getForLoopParameterLevel());
+                appendOption(xpluginArg, "try.param.level", finalGuardExtension.getTryWithResourceLevel());
+                appendOption(xpluginArg, "catch.param.level", finalGuardExtension.getCatchParameterLevel());
+                appendOption(xpluginArg, "lambda.param.level", finalGuardExtension.getLambdaParameterLevel());
+                options.getCompilerArgs().add(xpluginArg.toString());
             });
         });
+    }
+
+    private static void appendOption(StringBuilder sb, String key, Property<Diagnostic.Kind> property) {
+        if (property.isPresent()) {
+            sb.append(' ').append(key).append('=').append(property.get());
+        }
     }
 }

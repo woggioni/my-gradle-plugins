@@ -25,37 +25,29 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.ExecutableElement;
 import javax.tools.Diagnostic;
-import java.util.AbstractMap;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class FinalGuardPlugin implements Plugin {
-    public static final String DIAGNOSTIC_LEVEL_KEY = "net.woggioni.finalguard.diagnostic.level";
+    public static final String DEFAULT_LEVEL_KEY = "default.level";
     public static final String IGNORE_ABSTRACT_METHOD_PARAMS_KEY = "net.woggioni.finalguard.ignore.abstract.method.params";
-
     enum VariableType {
-        LOCAL_VAR("net.woggioni.finalguard.diagnostic.local.variable.level"),
-        METHOD_PARAM("net.woggioni.finalguard.diagnostic.method.param.level"),
-        LOOP_PARAM("net.woggioni.finalguard.diagnostic.for.param.level"),
-        TRY_WITH_PARAM("net.woggioni.finalguard.diagnostic.try.param.level"),
-        CATCH_PARAM("net.woggioni.finalguard.diagnostic.catch.param.level"),
-        LAMBDA_PARAM("net.woggioni.finalguard.diagnostic.lambda.param.level"),
-        ABSTRACT_METHOD_PARAM("net.woggioni.finalguard.diagnostic.abstract.method.param.level");
+        LOCAL_VAR("local.variable.level"),
+        METHOD_PARAM("method.param.level"),
+        LOOP_PARAM("for.param.level"),
+        TRY_WITH_PARAM("try.param.level"),
+        CATCH_PARAM("catch.param.level"),
+        LAMBDA_PARAM("lambda.param.level"),
+        ABSTRACT_METHOD_PARAM("abstract.method.param.level");
 
-        private final String propertyKey;
+        private final String argKey;
 
-        VariableType(final String propertyKey) {
-            this.propertyKey = propertyKey;
+        VariableType(final String argKey) {
+                this.argKey = argKey;
         }
 
-        public String getPropertyKey() {
-            return propertyKey;
+        public String getArgKey() {
+            return argKey;
         }
 
         public String getMessage(final String variableName) {
@@ -92,11 +84,18 @@ public class FinalGuardPlugin implements Plugin {
     private static final class Configuration {
         private final Map<VariableType, Diagnostic.Kind> levels;
 
-        public Configuration() {
+        public Configuration(final String... args) {
+                final Map<String, String> props = new HashMap<>();
+                for (final String arg : args) {
+                    final String[] parts = arg.split("=", 2);
+                    if (parts.length == 2) {
+                        props.put(parts[0], parts[1]);
+                    }
+                }
             final Diagnostic.Kind defaultLevel =
-                    Optional.ofNullable(System.getProperty(DIAGNOSTIC_LEVEL_KEY)).map(Diagnostic.Kind::valueOf).orElse(null);
+                    Optional.ofNullable(props.get(DEFAULT_LEVEL_KEY)).map(Diagnostic.Kind::valueOf).orElse(null);
             this.levels = Arrays.stream(VariableType.values()).map(vt -> {
-                final Diagnostic.Kind level = Optional.ofNullable(System.getProperty(vt.getPropertyKey())).map(Diagnostic.Kind::valueOf).orElse(defaultLevel);
+                final Diagnostic.Kind level = Optional.ofNullable(props.get(vt.getArgKey())).map(Diagnostic.Kind::valueOf).orElse(defaultLevel);
                 if (level != null) {
                     return new AbstractMap.SimpleEntry<>(vt, level);
                 } else {
@@ -110,7 +109,6 @@ public class FinalGuardPlugin implements Plugin {
         return System.getProperty("java.version").compareTo("17") >= 0;
     }
 
-    private static final Configuration configuration = new Configuration();
     private static final boolean isJava17OrHigher = isJava17OrHigher();
 
     @Override
@@ -120,6 +118,7 @@ public class FinalGuardPlugin implements Plugin {
 
     @Override
     public void init(JavacTask task, String... args) {
+        final Configuration configuration = new Configuration(args);
         task.addTaskListener(new TaskListener() {
             @Override
             public void started(TaskEvent e) {
@@ -128,14 +127,14 @@ public class FinalGuardPlugin implements Plugin {
             @Override
             public void finished(TaskEvent e) {
                 if (e.getKind() == TaskEvent.Kind.ANALYZE) {
-                    analyzeFinalVariables(e.getCompilationUnit(), task, e.getTypeElement());
+                    analyzeFinalVariables(e.getCompilationUnit(), task, e.getTypeElement(), configuration);
                 }
             }
         });
     }
 
-    private void analyzeFinalVariables(CompilationUnitTree compilationUnit, JavacTask task, Element typeElement) {
-        FinalVariableAnalyzer analyzer = new FinalVariableAnalyzer(compilationUnit, task);
+    private void analyzeFinalVariables(CompilationUnitTree compilationUnit, JavacTask task, Element typeElement, Configuration configuration) {
+        FinalVariableAnalyzer analyzer = new FinalVariableAnalyzer(compilationUnit, task, configuration);
         TreePath path = Trees.instance(task).getPath(typeElement);
         if (path != null) {
             analyzer.scan(path, null);
@@ -143,12 +142,14 @@ public class FinalGuardPlugin implements Plugin {
     }
 
     private static class FinalVariableAnalyzer extends TreePathScanner<Void, Void> {
+        private final Configuration configuration;
         private final CompilationUnitTree compilationUnit;
         private final Trees trees;
         private final Map<String, VariableInfo> variableInfoMap = new LinkedHashMap<>();
         private final Set<String> reassignedVariables = new HashSet<>();
 
-        public FinalVariableAnalyzer(CompilationUnitTree compilationUnit, JavacTask task) {
+        public FinalVariableAnalyzer(CompilationUnitTree compilationUnit, JavacTask task, Configuration configuration) {
+            this.configuration = configuration;
             this.compilationUnit = compilationUnit;
             this.trees = Trees.instance(task);
         }

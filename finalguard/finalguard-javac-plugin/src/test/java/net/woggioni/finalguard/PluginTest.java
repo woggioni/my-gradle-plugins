@@ -7,39 +7,16 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import javax.tools.Diagnostic;
-import javax.tools.FileObject;
-import javax.tools.ForwardingJavaFileManager;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileObject;
-import javax.tools.SimpleJavaFileObject;
-import javax.tools.StandardJavaFileManager;
-import javax.tools.ToolProvider;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.io.StringWriter;
+import javax.tools.*;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.ABSTRACT_METHOD_PARAM;
-import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.CATCH_PARAM;
-import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LAMBDA_PARAM;
-import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LOCAL_VAR;
-import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.LOOP_PARAM;
-import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.METHOD_PARAM;
-import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.TRY_WITH_PARAM;
+import static net.woggioni.finalguard.FinalGuardPlugin.VariableType.*;
 
 public class PluginTest {
 
@@ -112,10 +89,9 @@ public class PluginTest {
                 .map(SourceFile::new).collect(Collectors.toList());
         List<String> arguments = Arrays.asList(
                 "-classpath", System.getProperty("test.compilation.classpath"),
-                "-Xplugin:" + FinalGuardPlugin.class.getName()
+                "-Xplugin:" + FinalGuardPlugin.class.getName() + " " + FinalGuardPlugin.DEFAULT_LEVEL_KEY + "=ERROR"
         );
         final ArrayList<Diagnostic<? extends JavaFileObject>> compilerMessages = new ArrayList<>();
-        System.setProperty(FinalGuardPlugin.DIAGNOSTIC_LEVEL_KEY, "ERROR");
         JavaCompiler.CompilationTask task = compiler.getTask(
                 output,
                 fileManager,
