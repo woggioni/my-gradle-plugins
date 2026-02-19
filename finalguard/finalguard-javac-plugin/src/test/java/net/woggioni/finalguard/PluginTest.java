@@ -1,6 +1,7 @@
 package net.woggioni.finalguard;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -81,15 +82,23 @@ public class PluginTest {
     }
 
     private Optional<Iterable<Diagnostic<? extends JavaFileObject>>> compile(Iterable<URI> sources) {
+        return compile(sources, "");
+    }
+
+    private Optional<Iterable<Diagnostic<? extends JavaFileObject>>> compile(Iterable<URI> sources, String extraPluginArgs) {
         StringWriter output = new StringWriter();
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         FileManager fileManager =
                 new FileManager(compiler.getStandardFileManager(null, null, null));
         List<JavaFileObject> compilationUnits = StreamSupport.stream(sources.spliterator(), false)
                 .map(SourceFile::new).collect(Collectors.toList());
+        String pluginArg = "-Xplugin:" + FinalGuardPlugin.class.getName() + " " + FinalGuardPlugin.DEFAULT_LEVEL_KEY + "=ERROR";
+        if (!extraPluginArgs.isEmpty()) {
+            pluginArg += " " + extraPluginArgs;
+        }
         List<String> arguments = Arrays.asList(
                 "-classpath", System.getProperty("test.compilation.classpath"),
-                "-Xplugin:" + FinalGuardPlugin.class.getName() + " " + FinalGuardPlugin.DEFAULT_LEVEL_KEY + "=ERROR"
+                pluginArg
         );
         final ArrayList<Diagnostic<? extends JavaFileObject>> compilerMessages = new ArrayList<>();
         JavaCompiler.CompilationTask task = compiler.getTask(
@@ -183,5 +192,26 @@ public class PluginTest {
             }
             Assertions.assertTrue(compilationErrors.isEmpty(), "Unexpected compilation errors found in the output");
         }
+    }
+
+    @Test
+    public void testExcludedSourceIsSkipped() throws Exception {
+        // TestCase3 normally produces an error (local var 'n' not final).
+        // When we exclude the directory containing TestCase3, it should compile without errors.
+        ClassLoader cl = getClass().getClassLoader();
+        URI sourceUri = cl.getResource("net/woggioni/finalguard/test/TestCase3.java").toURI();
+        String sourcePath = new File(sourceUri).getParent();
+
+        // Compile WITH exclude — should succeed (no errors)
+        Optional<Iterable<Diagnostic<? extends JavaFileObject>>> resultWithExclude =
+                compile(Collections.singletonList(sourceUri), FinalGuardPlugin.EXCLUDE_KEY + "=" + sourcePath);
+        Assertions.assertFalse(resultWithExclude.isPresent(),
+                "Compilation should succeed when source directory is excluded");
+
+        // Compile WITHOUT exclude — should fail (TestCase3 has errors)
+        Optional<Iterable<Diagnostic<? extends JavaFileObject>>> resultWithoutExclude =
+                compile(Collections.singletonList(sourceUri));
+        Assertions.assertTrue(resultWithoutExclude.isPresent(),
+                "Compilation should fail when source directory is NOT excluded");
     }
 }

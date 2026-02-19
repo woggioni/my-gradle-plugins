@@ -14,6 +14,7 @@ import org.gradle.api.tasks.compile.CompileOptions;
 import org.gradle.api.tasks.compile.JavaCompile;
 
 import javax.tools.Diagnostic;
+import java.io.File;
 import java.net.URL;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -21,6 +22,7 @@ import java.util.jar.Manifest;
 public class FinalGuardPlugin implements Plugin<Project> {
     private static final String FINALGUARD_PLUGIN_CONFIGURATION = "finalguard_plugin";
     private static final String JAVAC_PLUGIN_NAME = "net.woggioni.finalguard.FinalGuardPlugin";
+    private static final String EXCLUDE_KEY = "exclude";
 
     @Override
     public void apply(final Project project) {
@@ -49,10 +51,12 @@ public class FinalGuardPlugin implements Plugin<Project> {
         });
 
         final FinalGuardExtension finalGuardExtension = objects.newInstance(FinalGuardExtension.class);
-        extensionContainer.add("finalGuard", finalGuardExtension);
+        finalGuardExtension.getSkipGeneratedSources().convention(true);
+        extensionContainer.add("finalguard", finalGuardExtension);
         tasks.withType(JavaCompile.class, javaCompileTask -> {
             javaCompileTask.doFirst(t -> {
                 final CompileOptions options = javaCompileTask.getOptions();
+                options.setAnnotationProcessorPath(options.getAnnotationProcessorPath().plus(javacPluginConfiguration));
                 final StringBuilder xpluginArg = new StringBuilder("-Xplugin:").append(JAVAC_PLUGIN_NAME);
                 appendOption(xpluginArg, "default.level", finalGuardExtension.getDefaultLevel());
                 appendOption(xpluginArg, "local.variable.level", finalGuardExtension.getLocalVariableLevel());
@@ -62,14 +66,27 @@ public class FinalGuardPlugin implements Plugin<Project> {
                 appendOption(xpluginArg, "try.param.level", finalGuardExtension.getTryWithResourceLevel());
                 appendOption(xpluginArg, "catch.param.level", finalGuardExtension.getCatchParameterLevel());
                 appendOption(xpluginArg, "lambda.param.level", finalGuardExtension.getLambdaParameterLevel());
+                if (finalGuardExtension.getSkipGeneratedSources().getOrElse(true)) {
+                    final File generatedSourceDir = options.getGeneratedSourceOutputDirectory().getAsFile().getOrNull();
+                    if (generatedSourceDir != null) {
+                        appendOption(xpluginArg, EXCLUDE_KEY, generatedSourceDir.getAbsolutePath());
+                    }
+                }
+                for(final String excludedPrefix : finalGuardExtension.getExcludedPrefixes().get()) {
+                    appendOption(xpluginArg, EXCLUDE_KEY, excludedPrefix);
+                }
                 options.getCompilerArgs().add(xpluginArg.toString());
             });
         });
     }
 
+    private static void appendOption(StringBuilder sb, String key, String value) {
+            sb.append(' ').append(key).append('=').append(value);
+    }
+
     private static void appendOption(StringBuilder sb, String key, Property<Diagnostic.Kind> property) {
         if (property.isPresent()) {
-            sb.append(' ').append(key).append('=').append(property.get());
+            appendOption(sb, key, property.get().toString());
         }
     }
 }

@@ -1,35 +1,18 @@
 package net.woggioni.finalguard;
 
-import com.sun.source.tree.AssignmentTree;
-import com.sun.source.tree.BlockTree;
-import com.sun.source.tree.CatchTree;
-import com.sun.source.tree.CompilationUnitTree;
-import com.sun.source.tree.CompoundAssignmentTree;
-import com.sun.source.tree.EnhancedForLoopTree;
-import com.sun.source.tree.ForLoopTree;
-import com.sun.source.tree.IdentifierTree;
-import com.sun.source.tree.LambdaExpressionTree;
-import com.sun.source.tree.MethodTree;
-import com.sun.source.tree.Tree;
-import com.sun.source.tree.TryTree;
-import com.sun.source.tree.UnaryTree;
-import com.sun.source.tree.VariableTree;
-import com.sun.source.util.JavacTask;
-import com.sun.source.util.Plugin;
-import com.sun.source.util.TaskEvent;
-import com.sun.source.util.TaskListener;
-import com.sun.source.util.TreePath;
-import com.sun.source.util.TreePathScanner;
-import com.sun.source.util.Trees;
+import com.sun.source.tree.*;
+import com.sun.source.util.*;
+
 import javax.lang.model.element.Element;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class FinalGuardPlugin implements Plugin {
     public static final String DEFAULT_LEVEL_KEY = "default.level";
+    public static final String EXCLUDE_KEY = "exclude";
     public static final String IGNORE_ABSTRACT_METHOD_PARAMS_KEY = "net.woggioni.finalguard.ignore.abstract.method.params";
     enum VariableType {
         LOCAL_VAR("local.variable.level"),
@@ -83,15 +66,22 @@ public class FinalGuardPlugin implements Plugin {
 
     private static final class Configuration {
         private final Map<VariableType, Diagnostic.Kind> levels;
+        private final List<String> excludedPaths;
 
         public Configuration(final String... args) {
                 final Map<String, String> props = new HashMap<>();
+                final List<String> excluded = new ArrayList<>();
                 for (final String arg : args) {
                     final String[] parts = arg.split("=", 2);
                     if (parts.length == 2) {
-                        props.put(parts[0], parts[1]);
+                        if (EXCLUDE_KEY.equals(parts[0])) {
+                            excluded.add(parts[1]);
+                        } else {
+                            props.put(parts[0], parts[1]);
+                        }
                     }
                 }
+                this.excludedPaths = Collections.unmodifiableList(excluded);
             final Diagnostic.Kind defaultLevel =
                     Optional.ofNullable(props.get(DEFAULT_LEVEL_KEY)).map(Diagnostic.Kind::valueOf).orElse(null);
             this.levels = Arrays.stream(VariableType.values()).map(vt -> {
@@ -102,6 +92,15 @@ public class FinalGuardPlugin implements Plugin {
                     return null;
                 }
             }).filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+
+        public boolean isExcluded(final String sourcePath) {
+            for (final String excludedPath : excludedPaths) {
+                if (sourcePath.startsWith(excludedPath)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -134,6 +133,10 @@ public class FinalGuardPlugin implements Plugin {
     }
 
     private void analyzeFinalVariables(CompilationUnitTree compilationUnit, JavacTask task, Element typeElement, Configuration configuration) {
+        final String sourcePath = compilationUnit.getSourceFile().toUri().getPath();
+        if (sourcePath != null && configuration.isExcluded(sourcePath)) {
+            return;
+        }
         FinalVariableAnalyzer analyzer = new FinalVariableAnalyzer(compilationUnit, task, configuration);
         TreePath path = Trees.instance(task).getPath(typeElement);
         if (path != null) {

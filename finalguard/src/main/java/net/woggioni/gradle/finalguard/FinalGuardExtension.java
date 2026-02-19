@@ -1,5 +1,6 @@
 package net.woggioni.gradle.finalguard;
 
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 
 import javax.tools.Diagnostic;
@@ -21,4 +22,8 @@ public interface FinalGuardExtension {
     Property<Diagnostic.Kind> getAbstractMethodParameterLevel();
 
     Property<Diagnostic.Kind> getCatchParameterLevel();
+
+    Property<Boolean> getSkipGeneratedSources();
+
+    ListProperty<String> getExcludedPrefixes();
 }
