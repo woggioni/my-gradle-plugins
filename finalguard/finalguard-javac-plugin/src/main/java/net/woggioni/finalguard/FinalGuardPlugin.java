@@ -1,19 +1,51 @@
 package net.woggioni.finalguard;
 
-import com.sun.source.tree.*;
-import com.sun.source.util.*;
+import com.sun.source.tree.AssignmentTree;
+import com.sun.source.tree.BlockTree;
+import com.sun.source.tree.CatchTree;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.CompoundAssignmentTree;
+import com.sun.source.tree.EnhancedForLoopTree;
+import com.sun.source.tree.ForLoopTree;
+import com.sun.source.tree.IdentifierTree;
+import com.sun.source.tree.LambdaExpressionTree;
+import com.sun.source.tree.MethodTree;
+import com.sun.source.tree.Tree;
+import com.sun.source.tree.TryTree;
+import com.sun.source.tree.UnaryTree;
+import com.sun.source.tree.VariableTree;
+import com.sun.source.util.JavacTask;
+import com.sun.source.util.Plugin;
+import com.sun.source.util.TaskEvent;
+import com.sun.source.util.TaskListener;
+import com.sun.source.util.TreePath;
+import com.sun.source.util.TreePathScanner;
+import com.sun.source.util.Trees;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.tools.Diagnostic;
-import java.util.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FinalGuardPlugin implements Plugin {
     public static final String DEFAULT_LEVEL_KEY = "default.level";
     public static final String EXCLUDE_KEY = "exclude";
-    public static final String IGNORE_ABSTRACT_METHOD_PARAMS_KEY = "net.woggioni.finalguard.ignore.abstract.method.params";
+
     enum VariableType {
         LOCAL_VAR("local.variable.level"),
         METHOD_PARAM("method.param.level"),
@@ -75,7 +107,8 @@ public class FinalGuardPlugin implements Plugin {
                     final String[] parts = arg.split("=", 2);
                     if (parts.length == 2) {
                         if (EXCLUDE_KEY.equals(parts[0])) {
-                            excluded.add(parts[1]);
+                            final Path path = Paths.get(parts[1]);
+                            excluded.add(path.toAbsolutePath().toString());
                         } else {
                             props.put(parts[0], parts[1]);
                         }

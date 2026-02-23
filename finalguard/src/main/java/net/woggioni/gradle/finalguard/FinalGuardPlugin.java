@@ -67,7 +67,7 @@ public class FinalGuardPlugin implements Plugin<Project> {
                 appendOption(xpluginArg, "catch.param.level", finalGuardExtension.getCatchParameterLevel());
                 appendOption(xpluginArg, "lambda.param.level", finalGuardExtension.getLambdaParameterLevel());
                 if (finalGuardExtension.getSkipGeneratedSources().getOrElse(true)) {
-                    final File generatedSourceDir = options.getGeneratedSourceOutputDirectory().getAsFile().getOrNull();
+                    final File generatedSourceDir = project.getLayout().getBuildDirectory().getAsFile().get();
                     if (generatedSourceDir != null) {
                         appendOption(xpluginArg, EXCLUDE_KEY, generatedSourceDir.getAbsolutePath());
                     }
