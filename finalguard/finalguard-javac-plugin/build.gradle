@@ -39,6 +39,7 @@ test {
             sourceSets["test"].resources.srcDirs
     systemProperty("test.compilation.classpath",
             String.join(File.pathSeparator, testCompilationClassPath.collect { it.toString() }))
+    jvmArgs('--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED')
 }
 
 

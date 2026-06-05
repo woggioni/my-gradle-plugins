@@ -21,6 +21,8 @@ import com.sun.source.util.TaskListener;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.Trees;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeInfo;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
@@ -41,6 +43,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.sun.tools.javac.code.Flags.RECORD;
 
 public class FinalGuardPlugin implements Plugin {
     public static final String DEFAULT_LEVEL_KEY = "default.level";
@@ -192,11 +196,18 @@ public class FinalGuardPlugin implements Plugin {
 
         @Override
         public Void visitMethod(MethodTree node, Void p) {
-            variableInfoMap.clear();
-            reassignedVariables.clear();
+            if (node.getName().contentEquals("<init>")) {
+                TreePath classPath = getCurrentPath().getParentPath();
+                if (classPath != null && classPath.getParentPath() != null
+                        && classPath.getParentPath().getLeaf().getKind() == Tree.Kind.NEW_CLASS) {
+                    return null; // skip implicit constructor of anonymous class
+                }
+            }
             super.visitMethod(node, p);
             // Check for variables that could be final
             checkForFinalCandidates();
+            variableInfoMap.clear();
+            reassignedVariables.clear();
             return null;
         }
 
@@ -222,8 +233,7 @@ public class FinalGuardPlugin implements Plugin {
                 } else {
                     type = VariableType.METHOD_PARAM;
                     if (isJava17OrHigher && ((MethodTree) parent).getName().contentEquals("<init>")) {
-                        final TreePath grandParentPath = parentPath.getParentPath();
-                        if (grandParentPath.getLeaf().getKind() == Tree.Kind.RECORD) {
+                        if(TreeInfo.isCanonicalConstructor((JCTree) parent)) {
                             return super.visitVariable(node, p);
                         }
                     }

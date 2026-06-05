@@ -154,7 +154,24 @@ public class PluginTest {
                     )),
                     Arguments.of(prefix + "TestCase12.java", Collections.emptyList()),
                     Arguments.of(prefix + "TestCase13.java", Arrays.asList(ABSTRACT_METHOD_PARAM.getMessage("x"), ABSTRACT_METHOD_PARAM.getMessage("y"))),
-                    Arguments.of(prefix + "TestCase14.java", Arrays.asList(ABSTRACT_METHOD_PARAM.getMessage("x"), ABSTRACT_METHOD_PARAM.getMessage("y")))
+                    Arguments.of(prefix + "TestCase14.java", Arrays.asList(ABSTRACT_METHOD_PARAM.getMessage("x"), ABSTRACT_METHOD_PARAM.getMessage("y"))),
+                    Arguments.of(prefix + "TestCase15.java",
+                            Arrays.asList(
+                                    LOCAL_VAR.getMessage("a"),
+                                    METHOD_PARAM.getMessage("source"))),
+                    Arguments.of(prefix + "TestCase16.java",
+                            Arrays.asList(
+                                    METHOD_PARAM.getMessage("c"),
+                                    LOCAL_VAR.getMessage("d"),
+                                    METHOD_PARAM.getMessage("e"),
+                                    LOCAL_VAR.getMessage("f")
+                            )
+                    ),
+                    Arguments.of(prefix + "TestCase17.java",
+                            Arrays.asList(
+                                    METHOD_PARAM.getMessage("a")
+                            )
+                    )
             );
         }
     }
