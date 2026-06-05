@@ -21,12 +21,12 @@ import com.sun.source.util.TaskListener;
 import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.Trees;
-import com.sun.tools.javac.tree.JCTree;
-import com.sun.tools.javac.tree.TreeInfo;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,8 +43,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static com.sun.tools.javac.code.Flags.RECORD;
 
 public class FinalGuardPlugin implements Plugin {
     public static final String DEFAULT_LEVEL_KEY = "default.level";
@@ -185,6 +183,7 @@ public class FinalGuardPlugin implements Plugin {
         private final Configuration configuration;
         private final CompilationUnitTree compilationUnit;
         private final Trees trees;
+        private final Elements elements;
         private final Map<String, VariableInfo> variableInfoMap = new LinkedHashMap<>();
         private final Set<String> reassignedVariables = new HashSet<>();
 
@@ -192,6 +191,7 @@ public class FinalGuardPlugin implements Plugin {
             this.configuration = configuration;
             this.compilationUnit = compilationUnit;
             this.trees = Trees.instance(task);
+            this.elements = task.getElements();
         }
 
         @Override
@@ -203,6 +203,8 @@ public class FinalGuardPlugin implements Plugin {
                     return null; // skip implicit constructor of anonymous class
                 }
             }
+            variableInfoMap.clear();
+            reassignedVariables.clear();
             super.visitMethod(node, p);
             // Check for variables that could be final
             checkForFinalCandidates();
@@ -232,9 +234,13 @@ public class FinalGuardPlugin implements Plugin {
                     type = VariableType.ABSTRACT_METHOD_PARAM;
                 } else {
                     type = VariableType.METHOD_PARAM;
-                    if (isJava17OrHigher && ((MethodTree) parent).getName().contentEquals("<init>")) {
-                        if(TreeInfo.isCanonicalConstructor((JCTree) parent)) {
-                            return super.visitVariable(node, p);
+                    final MethodTree methodTree = (MethodTree) parent;
+                    if (isJava17OrHigher && (methodTree.getName().contentEquals("<init>"))) {
+                        final TreePath grandParentPath = parentPath.getParentPath();
+                        if(grandParentPath.getLeaf().getKind() == Tree.Kind.RECORD) {
+                            if(RecordUtils.isCanonicalConstructor(trees, elements, (TypeElement) trees.getElement(grandParentPath), parentPath)) {
+                                return super.visitVariable(node, p);
+                            }
                         }
                     }
                 }
@@ -317,5 +323,7 @@ public class FinalGuardPlugin implements Plugin {
             final Set<Modifier> modifiers = variableTree.getModifiers().getFlags();
             return modifiers.contains(Modifier.FINAL);
         }
+
+
     }
 }

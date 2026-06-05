@@ -9,19 +9,21 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
-import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.reporting.ReportingExtension;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.internal.jvm.JavaModuleDetector;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.jvm.toolchain.JavaToolchainSpec;
@@ -42,6 +44,7 @@ import java.util.function.Consumer;
 import static java.util.Optional.ofNullable;
 import static net.woggioni.gradle.jdeps.Constants.JDEPS_TASK_GROUP;
 
+@CacheableTask
 public abstract class JdepsTask extends Exec {
 
     private final JavaToolchainSpec toolchain;
@@ -58,6 +61,7 @@ public abstract class JdepsTask extends Exec {
     public abstract Property<FileCollection> getArchives();
 
     @InputDirectory
+    @PathSensitive(PathSensitivity.ABSOLUTE)
     public abstract DirectoryProperty getJavaHome();
 
     @Input

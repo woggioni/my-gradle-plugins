@@ -5,12 +5,6 @@ plugins {
 group = "net.woggioni.finalguard"
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-}
-
-java {
     sourceCompatibility(JavaVersion.VERSION_1_8.toString())
     targetCompatibility(JavaVersion.VERSION_1_8.toString())
     modularity.inferModulePath = false

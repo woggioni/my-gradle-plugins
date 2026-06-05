@@ -1,7 +1,5 @@
 package net.woggioni.gradle.sambal;
 
-import org.codehaus.groovy.ant.Groovy;
-import org.codehaus.groovy.util.StringUtil;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFile;
@@ -11,6 +9,7 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.Optional;
@@ -23,6 +22,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
 
+@CacheableTask
 abstract class SignJarTask extends DefaultTask {
     @InputFile
     public abstract RegularFileProperty getInputJarFile();

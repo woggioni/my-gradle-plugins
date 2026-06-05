@@ -3,13 +3,17 @@ package net.woggioni.gradle.wildfly;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Exec;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 
 import javax.inject.Inject;
 import java.util.Arrays;
 
+@CacheableTask
 public abstract class Deploy2WildflyTask extends Exec {
     private static final String PROPERTY_PREFIX = "net.woggioni.gradle.wildfly.";
     private static final String HOST_PROPERTY_KEY = PROPERTY_PREFIX + "rpcHost";
@@ -32,6 +36,7 @@ public abstract class Deploy2WildflyTask extends Exec {
     public abstract Property<String> getDeploymentName();
 
     @InputFile
+    @PathSensitive(PathSensitivity.NONE)
     public abstract RegularFileProperty getArtifact();
 
     private String projectProperty(String key, String defaultValue) {

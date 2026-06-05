@@ -3,6 +3,7 @@ package net.woggioni.gradle.osgi.app;
 import aQute.bnd.osgi.Constants;
 import lombok.SneakyThrows;
 import org.gradle.api.DefaultTask;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 
+@CacheableTask
 public class BundleFileTask extends DefaultTask {
 
     private final File systemBundleFile;

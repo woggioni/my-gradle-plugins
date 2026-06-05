@@ -7,10 +7,13 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.internal.jvm.JavaModuleDetector;
 
@@ -20,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+@CacheableTask
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
 public abstract class Delombok extends JavaExec {
 
@@ -42,6 +46,7 @@ public abstract class Delombok extends JavaExec {
     }
 
     @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
     public Provider<FileCollection> getSourceClasspath() {
         return getSourceSet()
                 .map(SourceSet::getCompileClasspath);
@@ -56,6 +61,7 @@ public abstract class Delombok extends JavaExec {
     @OutputDirectory
     abstract public RegularFileProperty getOutputDir();
     @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
     public Provider<FileCollection> getInputFiles() {
         return getSourceSet()
             .map(SourceSet::getAllSource)

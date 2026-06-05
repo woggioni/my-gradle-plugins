@@ -76,7 +76,6 @@ public class FinalGuardPlugin implements Plugin<Project> {
                     appendOption(xpluginArg, EXCLUDE_KEY, excludedPrefix);
                 }
                 options.getCompilerArgs().add(xpluginArg.toString());
-                options.getAllCompilerArgs().add("-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED");
             });
         });
     }

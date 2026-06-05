@@ -171,6 +171,12 @@ public class PluginTest {
                             Arrays.asList(
                                     METHOD_PARAM.getMessage("a")
                             )
+                    ),
+                    Arguments.of(prefix + "TestCase18.java",
+                            Collections.emptyList()
+                    ),
+                    Arguments.of(prefix + "TestCase19.java",
+                            Collections.emptyList()
                     )
             );
         }

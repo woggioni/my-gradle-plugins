@@ -11,6 +11,7 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.OutputDirectory;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import static net.woggioni.gradle.graalvm.Constants.GRAALVM_TASK_GROUP;
 import static net.woggioni.gradle.graalvm.NativeImagePlugin.NATIVE_IMAGE_CONFIGURATION_FOLDER_NAME;
 
+@CacheableTask
 public abstract class NativeImageConfigurationTask extends JavaExec {
     @Input
     public abstract Property<Boolean> getMergeConfiguration();

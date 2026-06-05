@@ -7,7 +7,10 @@ import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
 
 import javax.inject.Inject;
@@ -16,10 +19,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Set;
 
+@CacheableTask
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public class FrameworkRuntimeCheck extends DefaultTask {
 
-    @Getter(onMethod_ = @InputFiles)
+    @Getter(onMethod_ = {@InputFiles, @PathSensitive(PathSensitivity.NONE)})
     private final Provider<Configuration> confProvider;
 
     @TaskAction

@@ -7,6 +7,7 @@ import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
@@ -17,6 +18,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.util.Properties;
 
+@CacheableTask
 public class PropertyFileTask extends DefaultTask {
 
     @Getter(onMethod_ = @Input)

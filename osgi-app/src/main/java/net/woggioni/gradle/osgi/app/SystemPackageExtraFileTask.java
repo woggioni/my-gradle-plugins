@@ -11,9 +11,12 @@ import org.gradle.api.artifacts.result.ResolvedArtifactResult;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.ListProperty;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
 
 import javax.inject.Inject;
@@ -29,6 +32,7 @@ import java.util.jar.JarFile;
 import static net.woggioni.gradle.osgi.app.OsgiAppUtils.isBundle;
 import static net.woggioni.gradle.osgi.app.OsgiAppUtils.isJar;
 
+@CacheableTask
 public class SystemPackageExtraFileTask extends DefaultTask {
 
     @Getter(onMethod_ = @Input)
@@ -43,6 +47,7 @@ public class SystemPackageExtraFileTask extends DefaultTask {
     }
 
     @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
     FileCollection getInputFiles() {
         return getProject().getConfigurations().getByName("systemPackages");
     }
