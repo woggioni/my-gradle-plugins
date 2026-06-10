@@ -13,6 +13,7 @@ import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.BasePluginExtension;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.JavaApplication;
+import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.CacheableTask;
@@ -66,6 +67,8 @@ public abstract class NativeImageTask extends Exec {
     public abstract RegularFileProperty getNativeCompilerPath();
 
     @Input
+    public abstract ListProperty<String> getJvmArgs();
+    @Input
     public abstract Property<Boolean> getUseMusl();
     @Input
     public abstract Property<Boolean> getBuildStaticImage();
@@ -73,7 +76,8 @@ public abstract class NativeImageTask extends Exec {
     public abstract Property<Boolean> getEnableFallback();
     @Input
     public abstract Property<Boolean> getLinkAtBuildTime();
-
+    @Input
+    public abstract Property<Boolean> getVerbose();
     @Input
     public abstract Property<String> getMainClass();
 
@@ -99,6 +103,7 @@ public abstract class NativeImageTask extends Exec {
         getBuildStaticImage().convention(false);
         getEnableFallback().convention(false);
         getLinkAtBuildTime().convention(false);
+        getVerbose().convention(false);
         Provider<File> nativeComnpilerProvider = project.provider(() -> {
             String envVar;
             File compilerPath = null;
@@ -143,6 +148,12 @@ public abstract class NativeImageTask extends Exec {
             @Override
             public Iterable<String> asArguments() {
                 List<String> result = new ArrayList<>();
+                if(getJvmArgs().isPresent()) {
+                    final List<String> jvmArgs = getJvmArgs().get();
+                    for(final String arg : jvmArgs) {
+                        result.add("-J" + arg);
+                    }
+                }
                 if(!getEnableFallback().get()) {
                     result.add("--no-fallback");
                 }
@@ -154,6 +165,9 @@ public abstract class NativeImageTask extends Exec {
                 }
                 if(getLinkAtBuildTime().get()) {
                     result.add("--link-at-build-time");
+                }
+                if(getVerbose().get()) {
+                    result.add("--verbose");
                 }
                 if(getNativeCompilerPath().isPresent()) {
                     result.add("--native-compiler-path=" + getNativeCompilerPath().getAsFile().get());

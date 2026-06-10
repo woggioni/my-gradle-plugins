@@ -15,8 +15,6 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.jvm.tasks.Jar;
-import org.gradle.jvm.toolchain.JavaToolchainSpec;
-import org.gradle.jvm.toolchain.internal.DefaultToolchainSpec;
 
 @CacheableTask
 public class NativeImagePlugin implements Plugin<Project> {
@@ -67,6 +65,7 @@ public class NativeImagePlugin implements Plugin<Project> {
         nativeImageExtension.getBuildStaticImage().convention(false);
         nativeImageExtension.getCompressExecutable().convention(false);
         nativeImageExtension.getUseLZMA().convention(false);
+        nativeImageExtension.getVerbose().convention(false);
         nativeImageExtension.getCompressionLevel().convention(6);
 
         ConfigurationContainer configurations = project.getConfigurations();
@@ -93,9 +92,11 @@ public class NativeImagePlugin implements Plugin<Project> {
                 jts.getLanguageVersion().convention(nativeImageExtension.getToolchain().getLanguageVersion());
             });
 
+            nativeImageTask.getJvmArgs().set(nativeImageExtension.getJvmArgs());
             nativeImageTask.getBuildStaticImage().set(nativeImageExtension.getBuildStaticImage());
             nativeImageTask.getUseMusl().set(nativeImageExtension.getUseMusl());
             nativeImageTask.getLinkAtBuildTime().set(nativeImageExtension.getLinkAtBuildTime());
+            nativeImageTask.getLinkAtBuildTime().set(nativeImageExtension.getVerbose());
             nativeImageTask.getMainClass().set(nativeImageExtension.getMainClass());
             nativeImageTask.getMainModule().set(nativeImageExtension.getMainModule());
             nativeImageTask.getEnableFallback().set(nativeImageExtension.getEnableFallback());

@@ -58,9 +58,10 @@ public abstract class NativeImageConfigurationTask extends JavaExec {
         JavaPluginExtension javaExtension = getProject().getExtensions().getByType(JavaPluginExtension.class);
         ExtensionContainer ext = getProject().getExtensions();
         Property<JavaLauncher> javaLauncherProperty = getJavaLauncher();
-        Optional.ofNullable(ext.findByType(JavaToolchainService.class))
-                .flatMap(ts -> Optional.of(toolchain).map(ts::launcherFor))
-                .ifPresent(javaLauncherProperty::convention);
+        javaLauncherProperty.set(getProject().provider(() -> Optional.of(toolchain).orElseGet(javaExtension::getToolchain)).flatMap(toolchainSpec -> {
+            final JavaToolchainService jts = ext.findByType(JavaToolchainService.class);
+            return jts.launcherFor(toolchainSpec);
+        }));
         if(!Objects.isNull(javaApplication)) {
             getMainClass().convention(javaApplication.getMainClass());
             getMainModule().convention(javaApplication.getMainModule());
